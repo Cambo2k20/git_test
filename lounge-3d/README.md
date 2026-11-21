@@ -1,36 +1,36 @@
-# Lounge 3D Planner
+# Flat 3D Planner
 
-A 3D model of the empty lounge, built from the listing's measurements, floorplan and photos, with a furniture planner on top.
+A 3D model of the empty two-bedroom flat, built from the listing's measurements, floorplan and photos, with a furniture planner on top.
 
-![The empty lounge in 3D](preview.png)
+![The empty flat in 3D](preview.png)
 
 ## Files
 
 - `index.html` is the planner. Open it in a browser; it loads three.js from jsDelivr, so it needs an internet connection.
-- `lounge-empty.glb` is the empty room as a standalone 3D model (glTF binary, metres, Y up). It opens in Blender, Windows 3D Viewer, most online glTF viewers, and SketchUp with a glTF importer. The origin is the inside corner where the window wall meets the radiator wall.
+- `flat-empty.glb` is the empty flat as a standalone 3D model (glTF binary, metres, Y up), with each room as its own group. It opens in Blender, Windows 3D Viewer, most online glTF viewers, and SketchUp with a glTF importer. The origin is the lounge corner where the window wall meets the radiator wall.
 
-## What's modelled
+## Rooms
 
-| Part | Size or position | Source |
+| Room | Size | Source |
 | --- | --- | --- |
-| Lounge | 345 cm wide × 434 cm from the window wall to the hall door | Listing |
-| Kitchen | 343 cm × 229 cm | Listing |
-| Ceiling | 240 cm | Estimate |
-| Door recess | 110 cm wide, 25 cm deeper than the shower-room wall (so 409 cm along the feature wall) | Estimate, fits the 229 cm shower room |
-| Hall door | 80 cm opening, hinged on the radiator side, opens into the lounge | Plan and photos |
-| Window | about 143 cm wide, beside the teal feature wall | Plan and photos |
-| Half-height ledge | 18 cm deep, 103 cm high with a black top, under the window | Photos |
-| Kitchen opening | about 123 cm wide, 200 cm high | Plan and photos |
-| Radiator | 85 cm column radiator on the radiator wall, by the door | Photos |
-| Finishes | oak strip floor, pine door and skirting, coving, recessed downlights | Photos |
+| Lounge | 4.34 × 3.45 m (window wall to hall door, including the 25 cm door recess) | Listing |
+| Kitchen | 3.43 × 2.29 m | Listing |
+| Entrance hall | 2.54 × 1.30 m | Listing |
+| Main bedroom | 3.89 × 3.53 m, with a built-in wardrobe along one wall | Listing, wardrobe from the plan |
+| Second bedroom | 3.89 × 2.29 m, with a built-in wardrobe in the corner by the door | Listing, wardrobe from the plan |
+| Shower room | 2.30 × 2.29 m, with the shower tray in a recess off the main bedroom | Listing, layout from the plan |
+| Ceilings | 2.40 m | Estimate |
 
-The room's overall size comes from the listing. Positions of the door, window, opening and radiator are scaled from the floorplan and photos, so allow about ±10 cm on those. Any size can be changed in the Room tab and the room resizes around your furniture.
+How the rooms fit together, and the positions of doors, windows, wardrobes and fittings, come from the floorplan and photos. Allow about ±10 cm on those.
+
+Lounge details from the photos: the window and half-height ledge with a black top, the kitchen opening, the teal feature wall, the column radiator by the door, the glazed pine door, oak floor, coving and downlights.
 
 ## Using the planner
 
-- **Furniture tab:** tap an item to add it, drag it into place, and use the panel to resize, turn, recolour, duplicate or delete it. Items snap to walls. Anything that overlaps furniture, the radiator, the ledge or the door swing turns red.
-- **Room tab:** room size, wall colours, floor and woodwork finishes.
-- **Views:** 3D (orbit), Top (a plan cut at 1.2 m with dimensions) and Eye level (walk around at standing height).
-- **Save & export:** save or open a layout file, download the room as a .glb (empty or furnished), or save a picture.
+- **Show:** pick the whole flat or one room. In 3D, the chosen room keeps its far walls at full height and the rest of the flat is cut at 1.2 m so you can see in.
+- **Furniture tab:** tap an item to add it to the room you're showing (beds go to the main bedroom when you're showing the whole flat). Drag it into place, even through a doorway into another room. The panel resizes, turns, recolours, duplicates or deletes it. Items snap to walls, and anything that overlaps furniture, a door swing, the radiator, a wardrobe or a fitting turns red.
+- **Rooms tab:** room sizes, the lounge's dimensions, wall colours per room, floors and woodwork.
+- **Views:** 3D, Top (a plan cut at 1.2 m with room sizes) and Eye level, where you can walk through the doorways from room to room.
+- **Save & export:** save or open a layout file, download the flat as a .glb (empty or furnished), or save a picture.
 
 Your layout is also kept in the browser as you go.

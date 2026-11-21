@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lounge 3D Planner</title>
+<title>Flat 3D Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -161,17 +161,32 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
 #toast.show { opacity: 1; }
 #loadfail { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); z-index: 5; }
 
+@media (max-width: 1100px) {
+  .tl { right: 12px; }
+  .tr { top: auto; bottom: 12px; left: 12px; right: auto; justify-content: flex-start; }
+  .hint-bar { display: none; }
+}
 @media (max-width: 760px) {
   #app { grid-template-columns: 1fr; grid-template-rows: minmax(300px, 56%) 1fr; }
   #stage { grid-column: 1; grid-row: 1; }
   #panel { grid-column: 1; grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
   #inspector { position: fixed; left: 8px; right: 8px; width: auto; bottom: 8px; max-height: calc(44vh - 16px); max-height: calc(44dvh - 16px); }
   .hint-bar { display: none; }
-  .tl { top: 8px; left: 8px; right: 8px; } .tr { top: auto; bottom: 8px; right: 8px; }
+  .tl { top: 8px; left: 8px; right: 8px; } .tr { top: auto; bottom: 8px; left: 8px; right: auto; }
   .seg button { padding: 6px 9px; }
   .tr .pill { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+.tsel { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 0 4px 0 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-size: 12.5px; color: var(--muted); }
+.tsel select { border: 0; background: transparent; color: var(--ink); font: 500 13.5px var(--font-body); padding: 6px 4px; cursor: pointer; }
+.tsel:focus-within { border-color: var(--accent); }
+table.sizes { border-collapse: collapse; font-size: 13px; }
+table.sizes th { text-align: left; font-weight: 500; padding: 3px 16px 3px 0; }
+table.sizes td { color: var(--muted); font-variant-numeric: tabular-nums; }
+.placed .pick .nm { display: grid; }
+.placed .pick .nm small { color: var(--muted); font-size: 11.5px; }
+.dim.roomtag { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-family: var(--font-body); font-weight: 600; font-size: 11.5px; }
 </style>
 <script type="importmap">
 {
@@ -187,24 +202,24 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
 <div id="app">
   <aside id="panel" aria-label="Planner controls">
     <header class="ph">
-      <h1>Lounge 3D Planner</h1>
-      <p class="sub">Empty lounge, <b id="sizeline">345 × 434 cm</b>, built from the listing’s measurements, floorplan and photos.</p>
+      <h1>Flat 3D Planner</h1>
+      <p class="sub">The empty two-bedroom flat, built from the listing’s measurements, floorplan and photos. Lounge <b id="sizeline">345 × 434 cm</b>.</p>
     </header>
     <div class="tabs" role="tablist" aria-label="Panels">
       <button role="tab" id="tb-furniture" aria-selected="true" aria-controls="tab-furniture">Furniture</button>
-      <button role="tab" id="tb-room" aria-selected="false" aria-controls="tab-room" tabindex="-1">Room</button>
+      <button role="tab" id="tb-room" aria-selected="false" aria-controls="tab-room" tabindex="-1">Rooms</button>
       <button role="tab" id="tb-save" aria-selected="false" aria-controls="tab-save" tabindex="-1">Save &amp; export</button>
     </div>
 
     <section id="tab-furniture" role="tabpanel" aria-labelledby="tb-furniture">
-      <p class="lead">Tap an item to add it, then drag it into place. Sizes are typical; change them to match what you own.</p>
+      <p class="lead">Tap an item to add it to <b id="add-target">the lounge</b>, then drag it into place, even into another room. Sizes are typical; change them to match what you own.</p>
       <div id="catalog" class="block"></div>
       <div class="block">
-        <h2>In the room <span id="count" class="count">0</span></h2>
+        <h2>In the flat <span id="count" class="count">0</span></h2>
         <ul id="placed" class="placed"></ul>
-        <p id="placed-empty" class="note">Nothing yet. The room is empty.</p>
+        <p id="placed-empty" class="note">Nothing yet. The flat is empty.</p>
         <div class="row">
-          <button class="btn small" id="btn-photo">Show the layout from the photos</button>
+          <button class="btn small" id="btn-photo">Show the lounge layout from the photos</button>
           <button class="btn small ghost danger" id="btn-clear">Remove all furniture</button>
         </div>
       </div>
@@ -212,13 +227,18 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
 
     <section id="tab-room" role="tabpanel" aria-labelledby="tb-room" hidden>
       <div class="block">
-        <h2>Room size</h2>
+        <h2>Room sizes</h2>
+        <table class="sizes" id="sizes"></table>
+        <p class="note">Sizes are the listing’s figures. Door, window and wardrobe positions are scaled from the floorplan and photos, so allow about ±10 cm on those.</p>
+      </div>
+      <div class="block">
+        <h2>Lounge size</h2>
         <div class="fields3">
-          <label class="f" for="room-w">Width<span class="inp"><input id="room-w" type="number" min="300" max="600" step="1" inputmode="numeric"> cm</span><span class="hint">along the window</span></label>
-          <label class="f" for="room-d">Length<span class="inp"><input id="room-d" type="number" min="300" max="700" step="1" inputmode="numeric"> cm</span><span class="hint">window to hall door</span></label>
-          <label class="f" for="room-h">Ceiling<span class="inp"><input id="room-h" type="number" min="220" max="320" step="1" inputmode="numeric"> cm</span><span class="hint">floor to ceiling</span></label>
+          <label class="f" for="room-w">Width<span class="inp"><input id="room-w" type="number" min="320" max="380" step="1" inputmode="numeric"> cm</span><span class="hint">along the window</span></label>
+          <label class="f" for="room-d">Length<span class="inp"><input id="room-d" type="number" min="380" max="520" step="1" inputmode="numeric"> cm</span><span class="hint">window to hall door</span></label>
+          <label class="f" for="room-h">Ceiling<span class="inp"><input id="room-h" type="number" min="220" max="300" step="1" inputmode="numeric"> cm</span><span class="hint">every room</span></label>
         </div>
-        <p class="note">Width and length are the listing’s figures. The length runs from the window wall to the hall door, including the 25 cm recess at the door. The ceiling height and the recess depth are estimates from the photos. Change any figure and the room resizes around your furniture.</p>
+        <p class="note">The length runs from the window wall to the hall door, including the 25 cm recess at the door. The ceiling height is an estimate from the photos. The rest of the flat moves with the lounge if you change these.</p>
         <p class="note" id="imperial"></p>
       </div>
       <div class="block">
@@ -227,18 +247,21 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
         <div class="row"><button class="btn small ghost" id="btn-paint-reset">Back to the colours in the photos</button></div>
       </div>
       <div class="block">
-        <h2>Floor</h2>
+        <h2>Floors</h2>
+        <h3>Lounge and hall</h3>
         <div id="floors" class="chips"></div>
+        <h3>Bedrooms</h3>
+        <div id="floors-bed" class="chips"></div>
+        <p class="note">The kitchen and shower room keep their tiles.</p>
       </div>
       <div class="block">
-        <h2>Door and skirting</h2>
+        <h2>Doors and skirting</h2>
         <div id="trims" class="chips"></div>
       </div>
       <div class="block">
         <h2>Show</h2>
         <div class="checks">
-          <label for="pf-kitchen"><input type="checkbox" id="pf-kitchen"> Kitchen through the opening</label>
-          <label for="pf-swing"><input type="checkbox" id="pf-swing"> Door swing on the floor</label>
+          <label for="pf-swing"><input type="checkbox" id="pf-swing"> Door swings on the floor</label>
           <label for="pf-measure"><input type="checkbox" id="pf-measure"> Distances from the selected item to the walls</label>
           <label for="pf-snap"><input type="checkbox" id="pf-snap"> Snap furniture to walls</label>
         </div>
@@ -257,9 +280,9 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
       </div>
       <div class="block">
         <h2>3D model</h2>
-        <button class="btn primary wide" id="btn-glb-empty">Download the empty room<small>.glb model, in metres, inside a .zip</small></button>
-        <button class="btn wide" id="btn-glb-full">Download the room with your furniture<small>Same model with everything you placed</small></button>
-        <p class="note">A .glb opens in Blender, Windows 3D Viewer, Apple Quick Look (via Reality Converter), SketchUp with a glTF importer, and most online 3D viewers. The origin is the inside corner where the window wall meets the radiator wall.</p>
+        <button class="btn primary wide" id="btn-glb-empty">Download the empty flat<small>.glb model, in metres, inside a .zip</small></button>
+        <button class="btn wide" id="btn-glb-full">Download the flat with your furniture<small>Same model with everything you placed</small></button>
+        <p class="note">A .glb opens in Blender, Windows 3D Viewer, Apple Quick Look (via Reality Converter), SketchUp with a glTF importer, and most online 3D viewers. Each room is its own group. The origin is the lounge corner where the window wall meets the radiator wall.</p>
       </div>
       <div class="block">
         <h2>Picture</h2>
@@ -270,7 +293,7 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
   </aside>
 
   <main id="stage">
-    <canvas id="c" aria-label="3D view of the lounge"></canvas>
+    <canvas id="c" aria-label="3D view of the flat"></canvas>
     <div id="labels" aria-hidden="true"></div>
     <div class="toolbar tl">
       <div class="seg" role="group" aria-label="View">
@@ -278,11 +301,29 @@ input[type="text"].name:hover, input[type="text"].name:focus { border-color: var
         <button data-view="plan" aria-pressed="false">Top</button>
         <button data-view="eye" aria-pressed="false">Eye level</button>
       </div>
-      <div class="seg sub-seg" id="eye-presets" role="group" aria-label="Stand at" hidden>
-        <button data-eye="door">Doorway</button>
-        <button data-eye="window">Window</button>
-        <button data-eye="corner">Far corner</button>
-      </div>
+      <label class="tsel" for="focus" id="focus-wrap"><span>Show</span>
+        <select id="focus">
+          <option value="flat">Whole flat</option>
+          <option value="lounge">Lounge</option>
+          <option value="kitchen">Kitchen</option>
+          <option value="hall">Hall</option>
+          <option value="bedMain">Main bedroom</option>
+          <option value="bedSmall">Second bedroom</option>
+          <option value="shower">Shower room</option>
+        </select>
+      </label>
+      <label class="tsel" for="eye-where" id="eye-wrap" hidden><span>Stand in</span>
+        <select id="eye-where">
+          <option value="lounge-door">Lounge, by the door</option>
+          <option value="lounge-window">Lounge, by the window</option>
+          <option value="lounge-corner">Lounge, far corner</option>
+          <option value="kitchen">Kitchen</option>
+          <option value="hall">Hall</option>
+          <option value="bedMain">Main bedroom</option>
+          <option value="bedSmall">Second bedroom</option>
+          <option value="shower">Shower room</option>
+        </select>
+      </label>
       <button class="tbtn" id="btn-reset-view">Reset view</button>
     </div>
     <div class="toolbar tr">
@@ -363,15 +404,22 @@ function shade(hex, f) { const c = new THREE.Color(hex); const h = {}; c.getHSL(
 function cssVar(name, fallback) { const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
 
 /* --------------------------------------------------------------- palette */
-const PHOTO_PAINT = { north: '#e8e4dc', east: '#22566a', south: '#e8e4dc', west: '#e8e4dc', ceiling: '#f5f3ef' };
-const ALCOVE = 0.25; // the door end of the room sits 25 cm deeper than the shower-room wall
-const DEFAULT_ROOM = { W: 3.45, D: 4.34 - ALCOVE, H: 2.40, paint: { ...PHOTO_PAINT }, trim: '#c27d42', floor: 'oak' };
+const PHOTO_PAINT = {
+  north: '#e8e4dc', east: '#22566a', south: '#e8e4dc', west: '#e8e4dc', ceiling: '#f5f3ef',
+  kitchen: '#ebe8e2', hall: '#ebe7e0', bedMain: '#e7e4de', bedSmall: '#e7e4de', shower: '#eceeed',
+};
+const ALCOVE = 0.25; // the door end of the lounge sits 25 cm deeper than the shower-room wall
+const DEFAULT_ROOM = { W: 3.45, D: 4.34 - ALCOVE, H: 2.40, paint: { ...PHOTO_PAINT }, trim: '#c27d42', floor: 'oak', floorBed: 'carpetOat' };
+const ROOM_NAMES = { lounge: 'Lounge', kitchen: 'Kitchen', hall: 'Hall', bedMain: 'Main bedroom', bedSmall: 'Second bedroom', shower: 'Shower room' };
+const LISTING = { lounge: '4.34 × 3.45 m', kitchen: '3.43 × 2.29 m', hall: '2.54 × 1.30 m', bedMain: '3.89 × 3.53 m', bedSmall: '3.89 × 2.29 m', shower: '2.30 × 2.29 m' };
+const LISTING_CM = { kitchen: '343 × 229', hall: '254 × 130', bedMain: '389 × 353', bedSmall: '389 × 229', shower: '230 × 229' };
 const WALLS_UI = [
-  { key: 'north', label: 'Window wall' },
-  { key: 'east', label: 'Feature wall' },
-  { key: 'south', label: 'Door wall' },
-  { key: 'west', label: 'Radiator wall' },
-  { key: 'ceiling', label: 'Ceiling and coving' },
+  { title: 'Lounge', rows: [
+    { key: 'north', label: 'Window wall' }, { key: 'east', label: 'Feature wall' },
+    { key: 'south', label: 'Door wall' }, { key: 'west', label: 'Radiator wall' } ] },
+  { title: 'Other rooms', rows: [
+    { key: 'kitchen', label: 'Kitchen' }, { key: 'hall', label: 'Hall' }, { key: 'bedMain', label: 'Main bedroom' },
+    { key: 'bedSmall', label: 'Second bedroom' }, { key: 'shower', label: 'Shower room' }, { key: 'ceiling', label: 'Ceilings and coving' } ] },
 ];
 const PAINTS = [
   ['#e8e4dc', 'Off-white, as now'], ['#f6f5f1', 'White'], ['#d8d2c6', 'Greige'], ['#c1cbc0', 'Sage'],
@@ -402,6 +450,12 @@ const CATALOG = [
   { kind: 'ottoman', type: 'ottoman', name: 'Footstool', group: 'Seating', w: 0.60, d: 0.45, h: 0.42, color: '#b9a58a' },
   { kind: 'diningChair', type: 'diningChair', name: 'Dining chair', group: 'Seating', w: 0.45, d: 0.52, h: 0.88, color: '#3b3f44' },
   { kind: 'officeChair', type: 'officeChair', name: 'Desk chair', group: 'Seating', w: 0.62, d: 0.62, h: 1.05, color: '#2d2f33' },
+  { kind: 'bedDouble', type: 'bed', name: 'Double bed', group: 'Bedroom', w: 1.45, d: 2.05, h: 1.00, color: '#8d949a' },
+  { kind: 'bedKing', type: 'bed', name: 'King bed', group: 'Bedroom', w: 1.65, d: 2.15, h: 1.05, color: '#d9cfbf' },
+  { kind: 'bedSingle', type: 'bed', name: 'Single bed', group: 'Bedroom', w: 1.00, d: 2.00, h: 0.90, color: '#c49a6c' },
+  { kind: 'bedside', type: 'drawers', name: 'Bedside table', group: 'Bedroom', w: 0.45, d: 0.40, h: 0.50, color: '#c49a6c' },
+  { kind: 'chest', type: 'drawers', name: 'Chest of drawers', group: 'Bedroom', w: 0.80, d: 0.45, h: 0.85, color: '#e8e2d6' },
+  { kind: 'wardrobe', type: 'wardrobe', name: 'Wardrobe', group: 'Bedroom', w: 1.00, d: 0.60, h: 2.00, color: '#f0ede6' },
   { kind: 'coffeeTable', type: 'coffeeTable', name: 'Coffee table', group: 'Tables', w: 1.10, d: 0.60, h: 0.45, color: '#8b5e3c' },
   { kind: 'sideTable', type: 'sideTable', name: 'Side table', group: 'Tables', w: 0.45, d: 0.45, h: 0.55, color: '#c19a6b' },
   { kind: 'diningTable', type: 'diningTable', name: 'Dining table', group: 'Tables', w: 1.20, d: 0.80, h: 0.75, color: '#b98a5a' },
@@ -424,15 +478,25 @@ const displayName = (it) => it.name || CAT[it.kind]?.name || it.type;
 /* ------------------------------------------------------------------ state */
 const STORAGE_KEY = 'lounge-3d-planner-v1';
 let state = { room: structuredClone(DEFAULT_ROOM), items: [] };
-let prefs = { kitchen: true, swing: true, measure: true, snap: true };
+let prefs = { swing: true, measure: true, snap: true, focus: 'flat' };
 let G = geo(state.room);
+let ROOMS = roomsDef(G);
+let DOORS = doorInfos(G);
 let selectedId = null;
 let clashes = { list: [], flagged: new Set(), byId: new Map() };
 
+/* Layout of the flat, in metres. x runs east along the lounge window, z runs south
+   from the lounge window wall towards the bedrooms, and the origin is the lounge's
+   inside corner by the window and the radiator wall. */
 function geo(r) {
   const W = r.W, D = r.D, H = r.H, Xs = 1.10, S = ALCOVE;
-  const kx1 = 1.50, kw = 2.29, kd = 3.43; // kitchen from the listing: 3.43 m x 2.29 m
   const win1 = W - 0.18, win0 = Math.max(1.48, win1 - 1.43);
+  const kx1 = 1.50, kw = 2.29, kd = 3.43;                         // kitchen 3.43 × 2.29
+  const hz0 = D + S + 0.12, hz1 = hz0 + 1.30, hx1 = Xs, hx0 = Xs - 2.54; // hall 2.54 × 1.30
+  const bz0 = hz1 + 0.10, bz1 = bz0 + 3.89;                       // both bedrooms 3.89 deep
+  const bmx0 = W - 3.53, bsx1 = bmx0 - 0.10, bsx0 = bsx1 - 2.29;  // 3.53 and 2.29 wide
+  const sx0 = Xs + 0.10, sz0 = D + 0.12, nx0 = W - 0.92, nz1 = sz0 + 2.30; // shower room 2.30 deep incl. the tray recess
+  const mainDoor0 = Math.min(bmx0 + 0.08, hx1 - 0.86);
   return {
     W, D, H, Xs, S,
     kOpen: [0.10, 1.33], kTop: Math.min(2.0, H - 0.25),
@@ -441,15 +505,52 @@ function geo(r) {
     door: [0.20, 1.00], doorTop: Math.min(2.03, H - 0.15),
     rad: { z0: D + S - 0.95, z1: D + S - 0.10, y0: 0.14, y1: 0.74, depth: 0.13 },
     kit: { x0: kx1 - kw, x1: kx1, z0: -0.20 - kd, z1: -0.20, w: kw, d: kd },
+    hall: { x0: hx0, x1: hx1, z0: hz0, z1: hz1 },
+    bed: { z0: bz0, z1: bz1, mx0: bmx0, sx0: bsx0, sx1: bsx1, part: bmx0 - 0.05 },
+    shw: { x0: sx0, z0: sz0, nx0, nz1, toiletX: W - 0.42, basinX: sx0 + 0.62 },
+    frontDoor: [hx0 + 0.20, hx0 + 1.02],
+    bedDoorMain: [mainDoor0, mainDoor0 + 0.78],
+    bedDoorSmall: [Math.max(hx0 + 0.06, bsx1 - 0.90), Math.max(hx0 + 0.06, bsx1 - 0.90) + 0.78],
+    showerDoor: [hz0 + 0.23, hz0 + 0.99],
+    wardSmall: [bsx0, bz0, bsx0 + 1.08, bz0 + 0.80],
+    wardMain: [bmx0, bz0 + 1.16, bmx0 + 0.60, bz1],
+    flat: [bsx0 - 0.25, -0.20 - kd - 0.25, W + 0.25, bz1 + 0.25],
   };
 }
+/* Each room: its bounding rectangle, and cut-outs inside it that furniture keeps clear of.
+   "shape" cut-outs are corners of the rectangle that belong to another room; "low" ones
+   only block things lower than their top (you can stand a plant on the window ledge). */
+function roomsDef(g) {
+  const { W, D, S, Xs } = g, k = g.kit, h = g.hall, b = g.bed, s = g.shw;
+  return {
+    lounge: { id: 'lounge', bounds: [0, 0, W, D + S], cuts: [
+      { r: [Xs, D, W, D + S], shape: true },
+      { r: [g.ledge.x0, 0, W, g.ledge.depth], low: g.ledge.top, name: 'the window ledge' } ] },
+    kitchen: { id: 'kitchen', bounds: [k.x0, k.z0, k.x1, k.z1], cuts: [
+      { r: [k.x0, k.z0, k.x1, k.z0 + 0.62], low: 0.94, name: 'the kitchen units' },
+      { r: [k.x0, k.z0 + 0.62, k.x0 + 0.62, k.z1], low: 0.94, name: 'the kitchen units' } ] },
+    hall: { id: 'hall', bounds: [h.x0, h.z0, h.x1, h.z1], cuts: [] },
+    shower: { id: 'shower', bounds: [s.x0, s.z0, W, s.nz1], cuts: [
+      { r: [s.x0, h.z1, s.nx0, s.nz1], shape: true },
+      { r: [s.x0, s.z0, W, s.z0 + 0.34], low: 0.92, name: 'the basin unit' },
+      { r: [s.toiletX - 0.2, s.z0 + 0.34, s.toiletX + 0.2, s.z0 + 0.86], low: 0.45, name: 'the toilet' },
+      { r: [s.nx0, h.z1, W, s.nz1], name: 'the shower' } ] },
+    bedMain: { id: 'bedMain', bounds: [b.mx0, b.z0, W, b.z1], cuts: [
+      { r: [s.nx0 - 0.10, b.z0, W, s.nz1 + 0.10], shape: true },
+      { r: g.wardMain, name: 'the built-in wardrobe' } ] },
+    bedSmall: { id: 'bedSmall', bounds: [b.sx0, b.z0, b.sx1, b.z1], cuts: [
+      { r: g.wardSmall, name: 'the built-in wardrobe' } ] },
+  };
+}
+const ROOM_ORDER = ['lounge', 'kitchen', 'hall', 'shower', 'bedMain', 'bedSmall'];
 
 function normalize(s) {
   const room = { ...structuredClone(DEFAULT_ROOM), ...((s && s.room) || {}) };
   room.paint = { ...PHOTO_PAINT, ...((s && s.room && s.room.paint) || {}) };
-  room.W = clamp(+room.W || DEFAULT_ROOM.W, 3, 6); room.D = clamp(+room.D || DEFAULT_ROOM.D, 2.75, 6.75); room.H = clamp(+room.H || 2.4, 2.2, 3.2);
+  room.W = clamp(+room.W || DEFAULT_ROOM.W, 3.2, 3.8); room.D = clamp(+room.D || DEFAULT_ROOM.D, 3.55, 4.95); room.H = clamp(+room.H || 2.4, 2.2, 3.0);
   if (Math.abs(room.W - 3.67) < 1e-6 && Math.abs(room.D - 4.12) < 1e-6) { room.W = DEFAULT_ROOM.W; room.D = DEFAULT_ROOM.D; } // first version's estimate -> listing size
   if (!FLOORS[room.floor]) room.floor = 'oak';
+  if (!FLOORS[room.floorBed]) room.floorBed = 'carpetOat';
   const hex = (c, f) => (/^#[0-9a-f]{6}$/i.test(c) ? c : f);
   for (const k of Object.keys(PHOTO_PAINT)) room.paint[k] = hex(room.paint[k], PHOTO_PAINT[k]);
   room.trim = hex(room.trim, DEFAULT_ROOM.trim);
@@ -458,6 +559,7 @@ function normalize(s) {
     name: String(i.name || '').slice(0, 60), x: +i.x || 0, z: +i.z || 0, rot: (((+i.rot || 0) % 360) + 360) % 360,
     w: clamp(+i.w || 0.5, 0.02, 6), d: clamp(+i.d || 0.5, 0.01, 6), h: clamp(+i.h || 0.5, 0.005, 3),
     elev: clamp(+i.elev || 0, 0, 2.8), color: hex(i.color, '#9aa5ab'), mirror: !!i.mirror,
+    room: ROOM_NAMES[i.room] ? i.room : '',
   })) : [];
   return { room, items };
 }
@@ -467,7 +569,7 @@ function loadStored() {
     const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
     const s = JSON.parse(raw);
     if (s && s.state) state = normalize(s.state);
-    if (s && s.prefs) prefs = { ...prefs, ...s.prefs };
+    if (s && s.prefs) prefs = { ...prefs, ...s.prefs, focus: (s.prefs.focus && (s.prefs.focus === 'flat' || ROOM_NAMES[s.prefs.focus])) ? s.prefs.focus : 'flat' };
   } catch (e) { /* ignore */ }
 }
 
@@ -491,18 +593,19 @@ const hemi = new THREE.HemisphereLight(0xffffff, 0xf3ebe0, 1.25);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3e3, 1.45);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(4096, 4096);
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.02;
 scene.add(sun, sun.target);
 function placeSun() {
-  sun.position.set(G.W * 0.3, 6.5, G.D * 0.62 + 1.2);
-  sun.target.position.set(G.W / 2, 0, G.D / 2);
-  const c = sun.shadow.camera, r = Math.max(G.W, G.D + G.S) * 0.8 + 0.6;
-  c.left = -r; c.right = r; c.top = r; c.bottom = -r; c.near = 0.5; c.far = 16; c.updateProjectionMatrix();
+  const [x0, z0, x1, z1] = G.flat, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  sun.position.set(cx - 1.2, 9, cz + 2.4);
+  sun.target.position.set(cx, 0, cz);
+  const c = sun.shadow.camera, r = Math.max(x1 - x0, z1 - z0) * 0.58 + 0.6;
+  c.left = -r; c.right = r; c.top = r; c.bottom = -r; c.near = 0.5; c.far = 22; c.updateProjectionMatrix();
 }
 
-const persp = new THREE.PerspectiveCamera(40, 1, 0.05, 120);
+const persp = new THREE.PerspectiveCamera(40, 1, 0.05, 160);
 const ortho = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 100);
 ortho.up.set(0, 0, -1);
 const eyeCam = new THREE.PerspectiveCamera(68, 1, 0.03, 300);
@@ -511,13 +614,13 @@ const orbit = new OrbitControls(persp, canvas);
 orbit.enableDamping = !reduceMotion;
 orbit.maxPolarAngle = Math.PI * 0.47;
 orbit.minDistance = 1.5;
-orbit.maxDistance = 22;
+orbit.maxDistance = 45;
 const planCtl = new OrbitControls(ortho, canvas);
 planCtl.enableRotate = false;
 planCtl.screenSpacePanning = true;
 planCtl.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 planCtl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
-planCtl.minZoom = 0.4; planCtl.maxZoom = 8;
+planCtl.minZoom = 0.3; planCtl.maxZoom = 10;
 planCtl.enabled = false;
 
 const size = { w: 1, h: 1 };
@@ -535,20 +638,18 @@ const woodMat = (c) => stdMat(c, 0.6);
 const metalMat = () => stdMat('#2a2c2f', 0.42, 0.6);
 const legMat = () => stdMat('#2b2622', 0.6);
 
-const KITCHEN_WALL = '#ebe8e2';
+const wallMat = () => new THREE.MeshStandardMaterial({ roughness: 0.94 });
 const roomMats = {
-  north: new THREE.MeshStandardMaterial({ roughness: 0.94 }),
-  east: new THREE.MeshStandardMaterial({ roughness: 0.94 }),
-  south: new THREE.MeshStandardMaterial({ roughness: 0.94 }),
-  west: new THREE.MeshStandardMaterial({ roughness: 0.94 }),
-  kitchen: new THREE.MeshStandardMaterial({ color: KITCHEN_WALL, roughness: 0.94 }),
-  ext: new THREE.MeshStandardMaterial({ color: KITCHEN_WALL, roughness: 0.94 }),
+  north: wallMat(), east: wallMat(), south: wallMat(), west: wallMat(),
+  kitchen: wallMat(), hall: wallMat(), bedMain: wallMat(), bedSmall: wallMat(), shower: new THREE.MeshStandardMaterial({ roughness: 0.6 }),
+  ext: new THREE.MeshStandardMaterial({ color: '#e6e2db', roughness: 0.94 }),
   cut: new THREE.MeshStandardMaterial({ color: '#3a4144', roughness: 0.9 }),
   ceiling: new THREE.MeshStandardMaterial({ roughness: 0.95, emissive: '#ffffff', emissiveIntensity: 0.18 }),
   cove: new THREE.MeshStandardMaterial({ roughness: 0.8, emissive: '#ffffff', emissiveIntensity: 0.1 }),
   trim: new THREE.MeshStandardMaterial({ roughness: 0.55 }),
   floor: new THREE.MeshStandardMaterial({ roughness: 0.55 }),
-  kfloor: new THREE.MeshStandardMaterial({ roughness: 0.45 }),
+  floorBed: new THREE.MeshStandardMaterial({ roughness: 1 }),
+  tile: new THREE.MeshStandardMaterial({ roughness: 0.45 }),
   ledgeTop: new THREE.MeshStandardMaterial({ color: '#1c2125', roughness: 0.35 }),
   frame: new THREE.MeshStandardMaterial({ color: '#f4f4f1', roughness: 0.45 }),
   glass: new THREE.MeshStandardMaterial({ color: '#c3dbe6', roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide }),
@@ -556,7 +657,8 @@ const roomMats = {
   radiator: new THREE.MeshStandardMaterial({ color: '#f1f0ec', roughness: 0.45 }),
   chrome: new THREE.MeshStandardMaterial({ color: '#c9ccd0', roughness: 0.25, metalness: 0.85 }),
   light: new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#fff6e6', emissiveIntensity: 0.9, roughness: 0.3 }),
-  hall: new THREE.MeshStandardMaterial({ color: '#e4ded5', roughness: 0.95 }),
+  porcelain: new THREE.MeshStandardMaterial({ color: '#f7f7f5', roughness: 0.18 }),
+  builtIn: new THREE.MeshStandardMaterial({ color: '#f1efea', roughness: 0.5 }),
 };
 
 /* ------------------------------------------------------------- textures */
@@ -614,7 +716,7 @@ function tileTexture() {
   }
   return finishTex(c, 1 / 0.6, 1 / 0.6);
 }
-roomMats.kfloor.map = tileTexture();
+roomMats.tile.map = tileTexture();
 function skyTexture() {
   const W = 2048, H = 1024, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); const r = rng('sky');
   const grad = g.createLinearGradient(0, 0, 0, H / 2);
@@ -686,6 +788,7 @@ function sofaLike(it, o = {}) {
   }
   return g;
 }
+const cornerSeatDepth = (it) => clamp(Math.min(it.w, it.d) * 0.5, 0.75, 1.0);
 const BUILD = {
   sofa: (it) => sofaLike(it),
   armchair: (it) => sofaLike(it, { armW: clamp(it.w * 0.2, 0.12, 0.2), seats: 1 }),
@@ -738,6 +841,39 @@ const BUILD = {
     g.add(B(w * 0.82, 0.08, d * 0.78, f, 0, 0.48, 0.03, 0.035));
     g.add(B(0.05, 0.22, 0.03, mm, 0, 0.6, -d * 0.36));
     g.add(B(w * 0.76, Math.max(0.2, h - 0.62), 0.07, f, 0, 0.62 + Math.max(0.2, h - 0.62) / 2, -d * 0.38, 0.03));
+    return g;
+  },
+  bed(it) {
+    const { w, d, h } = it; const g = new THREE.Group();
+    const f = fabricMat(it.color), linen = fabricMat('#f2efe9'), duvet = fabricMat('#e6e0d4');
+    const baseTop = 0.32, mattH = 0.22, hbD = 0.08, hbH = Math.max(baseTop + mattH + 0.15, h);
+    addLegs(g, w, d - hbD, 0.06, 0.07);
+    g.add(B(w, baseTop - 0.06, d - hbD, f, 0, 0.06 + (baseTop - 0.06) / 2, hbD / 2, 0.02));
+    g.add(B(w, hbH, hbD, f, 0, hbH / 2, -d / 2 + hbD / 2, 0.03));
+    const mw = w - 0.06, mz0 = -d / 2 + hbD + 0.02, mz1 = d / 2 - 0.03, md = mz1 - mz0;
+    g.add(B(mw, mattH, md, linen, 0, baseTop + mattH / 2, (mz0 + mz1) / 2, 0.05));
+    const dl = md * 0.7;
+    g.add(B(mw + 0.05, 0.07, dl, duvet, 0, baseTop + mattH + 0.015, mz1 + 0.025 - dl / 2, 0.035));
+    const np = w > 1.2 ? 2 : 1, pw = (mw - 0.1) / np;
+    for (let i = 0; i < np; i++) g.add(B(pw - 0.05, 0.12, 0.42, linen, -mw / 2 + 0.05 + pw * (i + 0.5), baseTop + mattH + 0.06, mz0 + 0.26, 0.055));
+    return g;
+  },
+  drawers(it) {
+    const { w, d, h } = it; const g = new THREE.Group(); const m = woodMat(it.color), line = stdMat(shade(it.color, 0.6), 0.8), knob = metalMat();
+    const plinth = 0.06, bodyH = h - plinth, n = clamp(Math.round(bodyH / 0.2), 1, 6);
+    g.add(B(w - 0.03, plinth, d - 0.04, stdMat(shade(it.color, 0.7), 0.8), 0, plinth / 2, -0.01));
+    g.add(B(w, bodyH, d, m, 0, plinth + bodyH / 2, 0, 0.005));
+    for (let i = 1; i < n; i++) g.add(B(w * 0.96, 0.005, 0.006, line, 0, plinth + (bodyH * i) / n, d / 2 + 0.001));
+    for (let i = 0; i < n; i++) { const kn = C(0.012, 0.012, 0.02, knob, 0, plinth + (bodyH * (i + 0.5)) / n, d / 2 + 0.01, 10); kn.rotation.x = Math.PI / 2; g.add(kn); }
+    return g;
+  },
+  wardrobe(it) {
+    const { w, d, h } = it; const g = new THREE.Group(); const m = woodMat(it.color), line = stdMat(shade(it.color, 0.6), 0.8), bar = metalMat();
+    const plinth = 0.06, bodyH = h - plinth, doors = clamp(Math.round(w / 0.5), 1, 4);
+    g.add(B(w - 0.03, plinth, d - 0.04, stdMat(shade(it.color, 0.7), 0.8), 0, plinth / 2, -0.01));
+    g.add(B(w, bodyH, d, m, 0, plinth + bodyH / 2, 0, 0.005));
+    for (let i = 1; i < doors; i++) g.add(B(0.005, bodyH * 0.97, 0.006, line, -w / 2 + (w * i) / doors, plinth + bodyH / 2, d / 2 + 0.001));
+    for (let i = 0; i < doors; i++) { const x = -w / 2 + (w * (i + 0.5)) / doors + (i % 2 ? -1 : 1) * (w / doors) * 0.38; g.add(B(0.015, 0.3, 0.02, bar, x, plinth + bodyH * 0.52, d / 2 + 0.012)); }
     return g;
   },
   coffeeTable(it) {
@@ -834,8 +970,7 @@ const BUILD = {
     const { w, h } = it; const g = new THREE.Group(); const m = metalMat();
     g.add(C(w * 0.35, w * 0.38, 0.025, m, 0, 0.0125, 0, 32));
     g.add(C(0.012, 0.012, h - 0.3, m, 0, (h - 0.3) / 2, 0, 12));
-    const shadeMesh = C(w * 0.34, w * 0.5, 0.3, stdMat(it.color, 0.9, 0, { side: THREE.DoubleSide, emissive: '#ffe3b5', emissiveIntensity: 0.25 }), 0, h - 0.15, 0, 36, true);
-    g.add(shadeMesh);
+    g.add(C(w * 0.34, w * 0.5, 0.3, stdMat(it.color, 0.9, 0, { side: THREE.DoubleSide, emissive: '#ffe3b5', emissiveIntensity: 0.25 }), 0, h - 0.15, 0, 36, true));
     return g;
   },
   rug(it) {
@@ -874,27 +1009,82 @@ function buildItem(it) {
 }
 function placeItem(it, g) { g.position.set(it.x, it.elev, it.z); g.rotation.y = -rad(it.rot); }
 
-/* -------------------------------------------------------------- the room */
+/* -------------------------------------------------------------- the flat */
+/* Every wall is a straight run from a to b. Its front face is on the left of a→b
+   (seen from above with north up) and the wall is t thick behind that face.
+   paint/back name the colour of each face; rooms says which room each face is in. */
 function wallDefs(g) {
-  const { W, D, S, Xs } = g, k = g.kit;
+  const { W, D, S, Xs } = g, k = g.kit, h = g.hall, b = g.bed, s = g.shw;
+  const part = b.part;
   return [
-    { id: 'north', paint: 'north', room: 'lounge', a: [0, 0], b: [W, 0], t: 0.20, ext: [0, 0.25], noSkirt: [[g.ledge.x0, W]],
+    { id: 'north', paint: 'north', back: 'ext', rooms: ['lounge', 'kitchen'], a: [0, 0], b: [W, 0], t: 0.20, ext: [0, 0.25], noSkirt: [[g.ledge.x0, W]], backFace: false,
       openings: [
         { u0: g.kOpen[0], u1: g.kOpen[1], y0: 0, y1: g.kTop, kind: 'opening' },
         { u0: g.win[0], u1: g.win[1], y0: g.winSill, y1: g.winTop, kind: 'window', frameLift: 0.03 },
       ] },
-    { id: 'east', paint: 'east', room: 'lounge', a: [W, 0], b: [W, D], t: 0.25, ext: [0.20, 0.12] },
-    { id: 'southE', paint: 'south', room: 'lounge', a: [W, D], b: [Xs, D], t: 0.12, ext: [0.25, 0] },
-    { id: 'step', paint: 'south', room: 'lounge', a: [Xs, D], b: [Xs, D + S], t: 0.10, ext: [0, 0.12], follow: 'southE' },
-    { id: 'southW', paint: 'south', room: 'lounge', a: [Xs, D + S], b: [0, D + S], t: 0.12, ext: [0.10, 0.15],
-      openings: [{ u0: Xs - g.door[1], u1: Xs - g.door[0], y0: 0, y1: g.doorTop, kind: 'door' }] },
-    { id: 'west', paint: 'west', room: 'lounge', a: [0, D + S], b: [0, 0], t: 0.15, ext: [0.12, 0] },
-    { id: 'kSouth', paint: 'kitchen', room: 'kitchen', a: [0, k.z1], b: [k.x0, k.z1], t: 0.20, ext: [0, 0.20], skirt: false },
-    { id: 'kWest', paint: 'kitchen', room: 'kitchen', a: [k.x0, k.z1], b: [k.x0, k.z0], t: 0.20, ext: [0, 0.25], skirt: false },
-    { id: 'kNorth', paint: 'kitchen', room: 'kitchen', a: [k.x0, k.z0], b: [k.x1, k.z0], t: 0.25, ext: [0.20, 0.25], skirt: false,
+    { id: 'east', paint: 'east', back: 'ext', rooms: ['lounge', null], a: [W, 0], b: [W, D], t: 0.25, ext: [0.20, 0.12] },
+    { id: 'southE', paint: 'south', back: 'shower', rooms: ['lounge', 'shower'], a: [W, D], b: [Xs, D], t: 0.12, ext: [0.25, 0] },
+    { id: 'step', paint: 'south', back: 'shower', rooms: ['lounge', 'shower'], a: [Xs, D], b: [Xs, D + S], t: 0.10, ext: [0, 0], follow: 'southE' },
+    { id: 'southW', paint: 'south', back: 'hall', rooms: ['lounge', 'hall'], a: [Xs, D + S], b: [0, D + S], t: 0.12, ext: [0, 0.15],
+      openings: [{ u0: Xs - g.door[1], u1: Xs - g.door[0], y0: 0, y1: g.doorTop, kind: 'door', style: 'glazed', hinge: 'u1', side: 1, label: 'the lounge door' }] },
+    { id: 'west', paint: 'west', back: 'ext', rooms: ['lounge', null], a: [0, D + S], b: [0, 0], t: 0.15, ext: [0, 0] },
+
+    { id: 'kSouth', paint: 'kitchen', back: 'ext', rooms: ['kitchen', null], a: [0, k.z1], b: [k.x0, k.z1], t: 0.20, ext: [0, 0.20] },
+    { id: 'kWest', paint: 'kitchen', back: 'ext', rooms: ['kitchen', null], a: [k.x0, k.z1], b: [k.x0, k.z0], t: 0.20, ext: [0, 0.25] },
+    { id: 'kNorth', paint: 'kitchen', back: 'ext', rooms: ['kitchen', null], a: [k.x0, k.z0], b: [k.x1, k.z0], t: 0.25, ext: [0.20, 0.25],
       openings: [{ u0: 0.245 * k.w, u1: 0.70 * k.w, y0: 1.05, y1: Math.min(2.10, g.H - 0.18), kind: 'window', sillBoard: true }] },
-    { id: 'kEast', paint: 'kitchen', room: 'kitchen', a: [k.x1, k.z0], b: [k.x1, k.z1], t: 0.25, ext: [0.25, 0], skirt: false },
+    { id: 'kEast', paint: 'kitchen', back: 'ext', rooms: ['kitchen', null], a: [k.x1, k.z0], b: [k.x1, k.z1], t: 0.25, ext: [0.25, 0] },
+
+    { id: 'hallN', paint: 'hall', back: 'ext', rooms: ['hall', null], a: [h.x0, h.z0], b: [-0.15, h.z0], t: 0.12, ext: [0.12, 0],
+      openings: [{ u0: g.frontDoor[0] - h.x0, u1: g.frontDoor[1] - h.x0, y0: 0, y1: g.doorTop, kind: 'door', style: 'panel', hinge: 'u1', side: 1, label: 'the front door' }] },
+    { id: 'hallW', paint: 'hall', back: 'ext', rooms: ['hall', null], a: [h.x0, h.z1], b: [h.x0, h.z0], t: 0.12, ext: [0, 0] },
+    { id: 'showerW', paint: 'hall', back: 'shower', rooms: ['hall', 'shower'], a: [Xs, D + S], b: [Xs, h.z1], t: 0.10, ext: [0, 0],
+      openings: [{ u0: g.showerDoor[0] - (D + S), u1: g.showerDoor[1] - (D + S), y0: 0, y1: g.doorTop, kind: 'door', style: 'panel', hinge: 'u1', side: -1, label: 'the shower room door' }] },
+    { id: 'hallSR', paint: 'hall', back: 'bedMain', rooms: ['hall', 'bedMain'], a: [s.x0, h.z1], b: [part, h.z1], t: 0.10, ext: [0, 0],
+      openings: [{ u0: s.x0 - g.bedDoorMain[1], u1: s.x0 - g.bedDoorMain[0], y0: 0, y1: g.doorTop, kind: 'door', style: 'panel', hinge: 'u1', side: -1, label: 'the main bedroom door' }] },
+    { id: 'hallSL', paint: 'hall', back: 'bedSmall', rooms: ['hall', 'bedSmall'], a: [part, h.z1], b: [h.x0, h.z1], t: 0.10, ext: [0, 0],
+      openings: [{ u0: part - g.bedDoorSmall[1], u1: part - g.bedDoorSmall[0], y0: 0, y1: g.doorTop, kind: 'door', style: 'panel', hinge: 'u0', side: -1, label: 'the second bedroom door' }] },
+
+    { id: 'showerS', paint: 'shower', back: 'bedMain', rooms: ['shower', 'bedMain'], a: [s.nx0 - 0.10, h.z1], b: [s.x0, h.z1], t: 0.10, ext: [0, 0] },
+    { id: 'notchW', paint: 'shower', back: 'bedMain', rooms: ['shower', 'bedMain'], a: [s.nx0, s.nz1], b: [s.nx0, h.z1], t: 0.10, ext: [0.10, 0], capA: 'bedMain', backExt: true },
+    { id: 'notchS', paint: 'shower', back: 'bedMain', rooms: ['shower', 'bedMain'], a: [W, s.nz1], b: [s.nx0, s.nz1], t: 0.10, ext: [0, 0] },
+    { id: 'showerE', paint: 'shower', back: 'ext', rooms: ['shower', null], a: [W, D + 0.12], b: [W, s.nz1], t: 0.25, ext: [0, 0.10] },
+
+    { id: 'bedME', paint: 'bedMain', back: 'ext', rooms: ['bedMain', null], a: [W, s.nz1 + 0.10], b: [W, b.z1], t: 0.25, ext: [0, 0.25] },
+    { id: 'bedMS', paint: 'bedMain', back: 'ext', rooms: ['bedMain', null], a: [W, b.z1], b: [part, b.z1], t: 0.25, ext: [0.25, 0],
+      openings: [{ u0: W - (b.mx0 + 0.71 * 3.53), u1: W - (b.mx0 + 0.40 * 3.53), y0: 0.9, y1: Math.min(2.1, g.H - 0.2), kind: 'window', sillBoard: true }] },
+    { id: 'bedPart', paint: 'bedMain', back: 'bedSmall', rooms: ['bedMain', 'bedSmall'], a: [b.mx0, b.z1], b: [b.mx0, b.z0], t: 0.10, ext: [0, 0] },
+    { id: 'bedSS', paint: 'bedSmall', back: 'ext', rooms: ['bedSmall', null], a: [part, b.z1], b: [b.sx0, b.z1], t: 0.25, ext: [0, 0.25],
+      openings: [{ u0: part - (b.sx0 + 0.68 * 2.29), u1: part - (b.sx0 + 0.25 * 2.29), y0: 0.9, y1: Math.min(2.1, g.H - 0.2), kind: 'window', sillBoard: true }] },
+    { id: 'bedSW', paint: 'bedSmall', back: 'ext', rooms: ['bedSmall', null], a: [b.sx0, b.z1], b: [b.sx0, b.z0], t: 0.25, ext: [0.25, 0.10] },
+    { id: 'bedSN', paint: 'bedSmall', back: 'ext', rooms: ['bedSmall', null], a: [b.sx0, b.z0], b: [h.x0, b.z0], t: 0.10, ext: [0.25, 0] },
   ];
+}
+const NO_SKIRT = new Set(['kitchen', 'shower']);
+const NO_COVE = new Set(['shower']);
+function wallFrame(def) {
+  const [ax, az] = def.a, [bx, bz] = def.b;
+  const L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
+  return { ax, az, L, dx, dz, nx: -dz, nz: dx };
+}
+/* Door positions in the flat, worked out from the walls: the swing (for the floor arc and
+   for clash checks) and the passage you can walk through at eye level. */
+function doorInfos(g) {
+  const out = [];
+  for (const def of wallDefs(g)) for (const o of def.openings || []) {
+    if (o.kind !== 'door' && o.kind !== 'opening') continue;
+    const f = wallFrame(def), t = def.t;
+    const P = (u, off) => ({ x: f.ax + f.dx * u + f.nx * off, z: f.az + f.dz * u + f.nz * off });
+    const ends = [P(o.u0 + 0.12, 0.32), P(o.u1 - 0.12, 0.32), P(o.u0 + 0.12, -t - 0.32), P(o.u1 - 0.12, -t - 0.32)];
+    const pass = [Math.min(...ends.map((p) => p.x)), Math.min(...ends.map((p) => p.z)), Math.max(...ends.map((p) => p.x)), Math.max(...ends.map((p) => p.z))];
+    if (o.kind === 'opening') { out.push({ pass }); continue; }
+    const uh = o.hinge === 'u0' ? o.u0 + 0.02 : o.u1 - 0.02, face = o.side > 0 ? 0 : -t;
+    const hp = P(uh, face), cd = o.hinge === 'u0' ? { x: f.dx, z: f.dz } : { x: -f.dx, z: -f.dz }, od = { x: f.nx * o.side, z: f.nz * o.side };
+    const r = o.u1 - o.u0 - 0.046, poly = [{ x: hp.x, z: hp.z }];
+    for (let i = 0; i <= 10; i++) { const a = (i / 10) * (Math.PI / 2); poly.push({ x: hp.x + r * (Math.cos(a) * cd.x + Math.sin(a) * od.x), z: hp.z + r * (Math.cos(a) * cd.z + Math.sin(a) * od.z) }); }
+    out.push({ label: o.label, poly, pass });
+  }
+  return out;
 }
 function coveGeometry(len) {
   const s = new THREE.Shape();
@@ -910,7 +1100,7 @@ function subtractRanges([a, b], gaps) {
   }
   return segs.filter(([s0, s1]) => s1 - s0 > 0.01);
 }
-function buildWindow(o, t, opts) {
+function buildWindow(o, t) {
   const grp = new THREE.Group(); grp.name = 'Window';
   const yb = o.y0 + (o.frameLift || 0), w = o.u1 - o.u0, h = o.y1 - yb, cx = (o.u0 + o.u1) / 2, cy = (yb + o.y1) / 2;
   const fz = -t + 0.06, fw = 0.06, fd = 0.07, F = roomMats.frame;
@@ -919,41 +1109,53 @@ function buildWindow(o, t, opts) {
   grp.add(RB(fw, h, fd, F, o.u0 + fw / 2, cy, fz));
   grp.add(RB(fw, h, fd, F, o.u1 - fw / 2, cy, fz));
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(w - 2 * fw, h - 2 * fw), roomMats.glass); glass.position.set(cx, cy, fz); glass.renderOrder = 2; grp.add(glass);
-  if (opts.sillBoard) { const dep = t - 0.095 + 0.03; grp.add(RB(w + 0.06, 0.025, dep, F, cx, o.y0 + 0.0125, -t + 0.095 + dep / 2)); }
+  if (o.sillBoard) { const dep = t - 0.095 + 0.03; grp.add(RB(w + 0.06, 0.025, dep, F, cx, o.y0 + 0.0125, -t + 0.095 + dep / 2)); }
   return grp;
 }
 function buildDoor(o, t) {
-  const grp = new THREE.Group(); grp.name = 'Door'; const T = roomMats.trim;
+  const grp = new THREE.Group(); grp.name = o.label ? o.label.replace(/^the /, '').replace(/^./, (c) => c.toUpperCase()) : 'Door';
+  const T = roomMats.trim;
   const w = o.u1 - o.u0, h = o.y1, lin = 0.02, cx = (o.u0 + o.u1) / 2;
   grp.add(RB(lin, h, t, T, o.u0 + lin / 2, h / 2, -t / 2));
   grp.add(RB(lin, h, t, T, o.u1 - lin / 2, h / 2, -t / 2));
   grp.add(RB(w, lin, t, T, cx, h - lin / 2, -t / 2));
   const aw = 0.07, ad = 0.015;
-  grp.add(RB(aw, h + aw - lin, ad, T, o.u0 + lin - aw / 2, (h + aw - lin) / 2, ad / 2));
-  grp.add(RB(aw, h + aw - lin, ad, T, o.u1 - lin + aw / 2, (h + aw - lin) / 2, ad / 2));
-  grp.add(RB(w - 2 * lin + 2 * aw, aw, ad, T, cx, h - lin + aw / 2, ad / 2));
+  for (const z of [ad / 2, -t - ad / 2]) {
+    grp.add(RB(aw, h + aw - lin, ad, T, o.u0 + lin - aw / 2, (h + aw - lin) / 2, z));
+    grp.add(RB(aw, h + aw - lin, ad, T, o.u1 - lin + aw / 2, (h + aw - lin) / 2, z));
+    grp.add(RB(w - 2 * lin + 2 * aw, aw, ad, T, cx, h - lin + aw / 2, z));
+  }
   const lw = w - 2 * lin - 0.006, lh = h - lin - 0.012, lt = 0.04;
-  const leaf = new THREE.Group(); leaf.position.set(cx, 0.008 + lh / 2, -0.035); grp.add(leaf);
-  leaf.add(RB(0.1, lh, lt, T, -lw / 2 + 0.05, 0, 0)); leaf.add(RB(0.1, lh, lt, T, lw / 2 - 0.05, 0, 0));
-  leaf.add(RB(lw - 0.2, 0.1, lt, T, 0, lh / 2 - 0.05, 0)); leaf.add(RB(lw - 0.2, 0.2, lt, T, 0, -lh / 2 + 0.1, 0));
-  const gw = lw - 0.2, gh = lh - 0.3, gy = 0.05;
-  leaf.add(RB(0.025, gh, lt * 0.7, T, 0, gy, 0));
-  for (let k = 1; k < 5; k++) leaf.add(RB(gw, 0.025, lt * 0.7, T, 0, gy - gh / 2 + (k * gh) / 5, 0));
-  const gl = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), roomMats.doorGlass); gl.position.set(0, gy, 0); gl.renderOrder = 2; leaf.add(gl);
-  const hy = 1.0 - (0.008 + lh / 2), hx = -lw / 2 + 0.065;
-  const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.012, 20), roomMats.chrome); rose.rotation.x = Math.PI / 2; rose.position.set(hx, hy, lt / 2 + 0.006); leaf.add(rose);
-  const lever = RB(0.12, 0.018, 0.018, roomMats.chrome, hx + 0.055, hy, lt / 2 + 0.05); leaf.add(lever);
-  leaf.add(RB(0.018, 0.018, 0.05, roomMats.chrome, hx, hy, lt / 2 + 0.03));
+  const leafZ = o.side > 0 ? -0.035 : -t + 0.035;
+  const leaf = new THREE.Group(); leaf.position.set(cx, 0.008 + lh / 2, leafZ); grp.add(leaf);
+  if (o.style === 'glazed') {
+    leaf.add(RB(0.1, lh, lt, T, -lw / 2 + 0.05, 0, 0)); leaf.add(RB(0.1, lh, lt, T, lw / 2 - 0.05, 0, 0));
+    leaf.add(RB(lw - 0.2, 0.1, lt, T, 0, lh / 2 - 0.05, 0)); leaf.add(RB(lw - 0.2, 0.2, lt, T, 0, -lh / 2 + 0.1, 0));
+    const gw = lw - 0.2, gh = lh - 0.3, gy = 0.05;
+    leaf.add(RB(0.025, gh, lt * 0.7, T, 0, gy, 0));
+    for (let k = 1; k < 5; k++) leaf.add(RB(gw, 0.025, lt * 0.7, T, 0, gy - gh / 2 + (k * gh) / 5, 0));
+    const gl = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), roomMats.doorGlass); gl.position.set(0, gy, 0); gl.renderOrder = 2; leaf.add(gl);
+  } else {
+    leaf.add(RB(lw, lh, lt, T, 0, 0, 0));
+    const pw = (lw - 0.3) / 2, ph = (lh - 0.45) / 2;
+    for (const sz of [1, -1]) for (const px of [-1, 1]) for (const py of [-1, 1]) leaf.add(RB(pw, ph, 0.008, T, px * (pw / 2 + 0.05), py * (ph / 2 + 0.06) + 0.02, sz * (lt / 2 + 0.003)));
+  }
+  const handleSide = o.hinge === 'u0' ? 1 : -1;
+  const hy = 1.0 - (0.008 + lh / 2), hx = handleSide * (lw / 2 - 0.065);
+  for (const sz of [1, -1]) {
+    const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.012, 20), roomMats.chrome); rose.rotation.x = Math.PI / 2; rose.position.set(hx, hy, sz * (lt / 2 + 0.006)); leaf.add(rose);
+    leaf.add(RB(0.12, 0.018, 0.018, roomMats.chrome, hx - handleSide * 0.055, hy, sz * (lt / 2 + 0.05)));
+    leaf.add(RB(0.018, 0.018, 0.05, roomMats.chrome, hx, hy, sz * (lt / 2 + 0.03)));
+  }
   return grp;
 }
-const PLAN_CUT = 1.2; // the top view slices the walls at 1.2 m, like an architect's plan
+const PLAN_CUT = 1.2; // the top view, and walls of rooms you aren't looking at, are sliced at 1.2 m like an architect's plan
 function buildWall(def, g, coves) {
-  const [ax, az] = def.a, [bx, bz] = def.b;
-  const L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
-  const n = { x: -dz, z: dx }, H = g.H, t = def.t, e0 = def.ext ? def.ext[0] : 0, e1 = def.ext ? def.ext[1] : 0;
-  const paint = roomMats[def.paint];
+  const f = wallFrame(def), L = f.L, H = g.H, t = def.t;
+  const e0 = (def.ext && def.ext[0]) || 0.002, e1 = (def.ext && def.ext[1]) || 0.002; // butt joints overlap 2 mm so no hairline cracks show
+  const front = roomMats[def.paint], back = roomMats[def.back] || roomMats.ext;
   const full = new THREE.Group(), stub = new THREE.Group(), plan = new THREE.Group();
-  for (const grp of [full, stub, plan]) { grp.position.set(ax, 0, az); grp.rotation.y = Math.atan2(-dz, dx); }
+  for (const grp of [full, stub, plan]) { grp.position.set(f.ax, 0, f.az); grp.rotation.y = Math.atan2(-f.dz, f.dx); }
   const ops = (def.openings || []).slice().sort((p, q) => p.u0 - q.u0);
   const pieces = []; let u = -e0;
   for (const o of ops) {
@@ -965,27 +1167,33 @@ function buildWall(def, g, coves) {
   if (L + e1 > u) pieces.push({ u0: u, u1: L + e1, y0: 0, y1: H });
   const mk = (p, top) => {
     const w = p.u1 - p.u0, h = top - p.y0;
-    const topMat = (top >= H - 1e-4 || top < p.y1 - 1e-4) ? roomMats.cut : paint;
-    const endA = (p.u0 <= -e0 + 1e-6 && e0 > 0) ? roomMats.ext : paint;
-    const endB = (p.u1 >= L + e1 - 1e-6 && e1 > 0) ? roomMats.ext : paint;
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, t), [endB, endA, topMat, paint, paint, roomMats.ext]);
+    const topMat = (top >= H - 1e-4 || top < p.y1 - 1e-4) ? roomMats.cut : front;
+    const endA = (p.u0 <= -e0 + 1e-6 && e0 > 0.01) ? (def.capA ? roomMats[def.capA] : roomMats.ext) : front;
+    const endB = (p.u1 >= L + e1 - 1e-6 && e1 > 0.01) ? roomMats.ext : front;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, t), [endB, endA, topMat, front, front, back]);
     m.position.set((p.u0 + p.u1) / 2, p.y0 + h / 2, -t / 2); m.receiveShadow = true; return m;
   };
   for (const p of pieces) {
     full.add(mk(p, p.y1));
     if (p.y0 === 0) { stub.add(mk(p, Math.min(p.y1, 0.1))); plan.add(mk(p, Math.min(p.y1, PLAN_CUT))); }
   }
-  if (def.skirt !== false) {
-    const gaps = ops.filter((o) => o.y0 === 0).map((o) => [o.u0, o.u1]).concat(def.noSkirt || []);
-    for (const [s0, s1] of subtractRanges([0, L], gaps)) full.add(RB(s1 - s0, 0.12, 0.018, roomMats.trim, (s0 + s1) / 2, 0.06, 0.009));
+  const doorGaps = ops.filter((o) => o.y0 === 0).map((o) => [o.u0, o.u1]);
+  const faces = [{ room: def.rooms[0], z: 0.009, sign: 1, gaps: doorGaps.concat(def.noSkirt || []) }];
+  if (def.rooms[1] && def.backFace !== false) faces.push({ room: def.rooms[1], z: -t - 0.009, sign: -1, gaps: doorGaps, range: def.backExt ? [-e0, L + e1] : null });
+  for (const fc of faces) {
+    if (!NO_SKIRT.has(fc.room)) for (const [s0, s1] of subtractRanges(fc.range || [0, L], fc.gaps)) full.add(RB(s1 - s0, 0.12, 0.018, roomMats.trim, (s0 + s1) / 2, 0.06, fc.z));
+    if (!NO_COVE.has(fc.room)) {
+      const cove = new THREE.Mesh(coveGeometry(L), roomMats.cove);
+      if (fc.sign > 0) { cove.rotation.y = -Math.PI / 2; cove.position.set(L, H, 0); } else { cove.rotation.y = Math.PI / 2; cove.position.set(0, H, -t); }
+      full.add(cove); coves.push(cove);
+    }
   }
-  const cove = new THREE.Mesh(coveGeometry(L), roomMats.cove); cove.rotation.y = -Math.PI / 2; cove.position.set(L, H, 0); full.add(cove); coves.push(cove);
   for (const o of ops) {
-    if (o.kind === 'window') full.add(buildWindow(o, t, o));
+    if (o.kind === 'window') full.add(buildWindow(o, t));
     if (o.kind === 'door') full.add(buildDoor(o, t));
   }
   full.name = 'Wall ' + def.id;
-  return { def, full, stub, plan, mid: { x: ax + (dx * L) / 2, z: az + (dz * L) / 2 }, n, room: def.room };
+  return { def, full, stub, plan, mid: { x: f.ax + (f.dx * L) / 2, z: f.az + (f.dz * L) / 2 }, n: { x: f.nx, z: f.nz }, rooms: def.rooms };
 }
 function polyGeo(pts, ceiling) {
   const s = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, ceiling ? z : -z)));
@@ -993,6 +1201,7 @@ function polyGeo(pts, ceiling) {
   geom.rotateX(ceiling ? Math.PI / 2 : -Math.PI / 2);
   return geom;
 }
+const rectPts = (x0, z0, x1, z1) => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
 function buildKitchenUnits(g) {
   const k = g.kit, grp = new THREE.Group(); grp.name = 'Kitchen units';
   const oak = stdMat('#b98b5c', 0.6), top = stdMat('#202428', 0.32, 0.05), plinth = stdMat('#2f3032', 0.8), line = stdMat('#7a5a3a', 0.7);
@@ -1015,66 +1224,114 @@ function buildKitchenUnits(g) {
   grp.add(RB(0.012, 0.6, k.z1 - k.z0 - 0.6, tile, k.x0 + 0.006, 1.22, (k.z0 + 0.6 + k.z1) / 2));
   return grp;
 }
+function builtInWardrobe(r, frontAxis, g, name) { // floor-to-ceiling, sliding doors on the open side
+  const [x0, z0, x1, z1] = r, grp = new THREE.Group(); grp.name = name;
+  const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, H = g.H;
+  const body = RB(w, H, d, roomMats.builtIn, cx, H / 2, cz); body.castShadow = true; grp.add(body);
+  const line = stdMat('#c9c5bd', 0.6), along = frontAxis === 'z' ? w : d, n = clamp(Math.round(along / 0.6), 2, 5);
+  for (let i = 1; i < n; i++) {
+    const p = (along * i) / n;
+    if (frontAxis === 'z') grp.add(RB(0.006, H - 0.12, 0.006, line, x0 + p, H / 2, z1 + 0.003));
+    else grp.add(RB(0.006, H - 0.12, 0.006, line, x1 + 0.003, H / 2, z0 + p));
+  }
+  if (frontAxis === 'z') { grp.add(RB(w, 0.06, 0.012, line, cx, H - 0.06, z1 + 0.006)); grp.add(RB(w, 0.06, 0.012, line, cx, 0.03, z1 + 0.006)); }
+  else { grp.add(RB(0.012, 0.06, d, line, x1 + 0.006, H - 0.06, cz)); grp.add(RB(0.012, 0.06, d, line, x1 + 0.006, 0.03, cz)); }
+  return grp;
+}
+function buildShowerFixtures(g) {
+  const s = g.shw, h = g.hall, grp = new THREE.Group(); grp.name = 'Shower room fittings'; const W = g.W, P = roomMats.porcelain;
+  const unit = RB(W - s.x0, 0.88, 0.34, stdMat('#f4f4f2', 0.3), (s.x0 + W) / 2, 0.44, s.z0 + 0.17); unit.castShadow = true; grp.add(unit);
+  grp.add(RB(W - s.x0 + 0.01, 0.03, 0.36, stdMat('#cfcac2', 0.4), (s.x0 + W) / 2, 0.895, s.z0 + 0.18));
+  const basin = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.12, 32), P); basin.scale.z = 0.7; basin.position.set(s.basinX, 0.97, s.z0 + 0.2); basin.castShadow = true; grp.add(basin);
+  grp.add(C(0.012, 0.012, 0.18, roomMats.chrome, s.basinX, 1.0, s.z0 + 0.05, 12));
+  const mirror = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.75), stdMat('#c8d1d6', 0.05, 0.9)); mirror.position.set(s.basinX, 1.55, s.z0 + 0.005); grp.add(mirror);
+  const tx = s.toiletX, tz = s.z0 + 0.34;
+  grp.add(C(0.13, 0.11, 0.38, P, tx, 0.19, tz + 0.2, 24));
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.15, 0.08, 28), P); bowl.scale.z = 1.35; bowl.position.set(tx, 0.4, tz + 0.27); bowl.castShadow = true; grp.add(bowl);
+  grp.add(RB(0.36, 0.02, 0.46, P, tx, 0.45, tz + 0.27));
+  grp.add(RB(0.22, 0.14, 0.008, roomMats.chrome, tx, 1.1, s.z0 + 0.344));
+  const trayW = W - s.nx0, trayD = s.nz1 - h.z1;
+  grp.add(RB(trayW, 0.05, trayD, P, (s.nx0 + W) / 2, 0.025, (h.z1 + s.nz1) / 2));
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(trayW - 0.02, 1.95, 0.01), roomMats.glass); screen.position.set((s.nx0 + W) / 2, 0.05 + 0.975, h.z1 + 0.02); screen.renderOrder = 2; grp.add(screen);
+  grp.add(RB(trayW, 0.025, 0.025, roomMats.chrome, (s.nx0 + W) / 2, 2.0, h.z1 + 0.02));
+  grp.add(C(0.012, 0.012, 1.1, roomMats.chrome, W - 0.04, 1.4, (h.z1 + s.nz1) / 2, 12));
+  const head = C(0.07, 0.07, 0.02, roomMats.chrome, W - 0.16, 1.98, (h.z1 + s.nz1) / 2, 24); head.rotation.z = Math.PI / 2 - 0.3; grp.add(head);
+  return grp;
+}
 function buildRoom(g, forExport) {
-  const group = new THREE.Group(); group.name = 'Lounge';
-  const lounge = new THREE.Group(); lounge.name = 'Lounge shell'; group.add(lounge);
-  const kitchen = new THREE.Group(); kitchen.name = 'Kitchen'; group.add(kitchen);
+  const group = new THREE.Group(); group.name = 'Flat';
   const walls = [], coves = [];
+  const wallGroup = new THREE.Group(); wallGroup.name = 'Walls, doors and windows'; group.add(wallGroup);
   for (const def of wallDefs(g)) {
     const w = buildWall(def, g, coves);
-    const parent = def.room === 'kitchen' ? kitchen : lounge;
-    parent.add(w.full); if (!forExport) parent.add(w.stub, w.plan);
+    wallGroup.add(w.full); if (!forExport) wallGroup.add(w.stub, w.plan);
     walls.push(w);
   }
   for (const w of walls) if (w.def.follow) w.leader = walls.find((x) => x.def.id === w.def.follow);
-  const { W, D, S, Xs, H } = g, k = g.kit;
-  const floorPts = [[0, 0], [W, 0], [W, D], [Xs, D], [Xs, D + S], [g.door[1], D + S], [g.door[1], D + S + 0.12], [g.door[0], D + S + 0.12], [g.door[0], D + S], [0, D + S]];
-  const floor = new THREE.Mesh(polyGeo(floorPts, false), roomMats.floor); floor.receiveShadow = true; floor.name = 'Floor'; lounge.add(floor);
-  const kPts = [[k.x0, k.z0], [k.x1, k.z0], [k.x1, k.z1], [g.kOpen[1], k.z1], [g.kOpen[1], 0], [g.kOpen[0], 0], [g.kOpen[0], k.z1], [k.x0, k.z1]];
-  const kfloor = new THREE.Mesh(polyGeo(kPts, false), roomMats.kfloor); kfloor.receiveShadow = true; kfloor.name = 'Kitchen floor'; kitchen.add(kfloor);
-  kitchen.add(buildKitchenUnits(g));
-
-  const ceiling = new THREE.Group(); ceiling.name = 'Ceiling'; lounge.add(ceiling);
-  const ceil = new THREE.Mesh(polyGeo([[0, 0], [W, 0], [W, D], [Xs, D], [Xs, D + S], [0, D + S]], true), roomMats.ceiling); ceil.position.y = H; ceiling.add(ceil);
-  for (const x of [0.7, W - 0.7]) for (const z of [0.8, D / 2, D - 0.8]) { const dl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 20), roomMats.light); dl.position.set(x, H - 0.004, z); ceiling.add(dl); }
-  const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.025, 28), roomMats.cove); rose.position.set(W / 2, H - 0.012, D / 2); ceiling.add(rose);
-  const smoke = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 24), roomMats.frame); smoke.position.set(W * 0.5, H - 0.02, D - 0.9); ceiling.add(smoke);
-  const kceiling = new THREE.Group(); kceiling.name = 'Kitchen ceiling'; kitchen.add(kceiling);
-  const kc = new THREE.Mesh(polyGeo([[k.x0, k.z0], [k.x1, k.z0], [k.x1, k.z1], [k.x0, k.z1]], true), roomMats.ceiling); kc.position.y = H; kceiling.add(kc);
-  for (const z of [k.z1 - k.d * 0.3, k.z1 - k.d * 0.75]) { const dl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 20), roomMats.light); dl.position.set(0.25, H - 0.004, z); kceiling.add(dl); }
-
-  const ledge = new THREE.Group(); ledge.name = 'Window ledge'; lounge.add(ledge);
+  const { W, D, S, Xs, H } = g, k = g.kit, h = g.hall, b = g.bed, s = g.shw;
+  const roomGroups = {};
+  for (const id of ROOM_ORDER) { const rg = new THREE.Group(); rg.name = ROOM_NAMES[id]; group.add(rg); roomGroups[id] = rg; }
+  const ceilings = new THREE.Group(); ceilings.name = 'Ceilings'; group.add(ceilings);
+  const addFloor = (room, pts, mat) => { const m = new THREE.Mesh(polyGeo(pts, false), mat); m.receiveShadow = true; m.name = 'Floor'; roomGroups[room].add(m); };
+  const addCeil = (pts, light) => {
+    const m = new THREE.Mesh(polyGeo(pts, true), roomMats.ceiling); m.position.y = H; ceilings.add(m);
+    if (light) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.05, 28), roomMats.light); l.position.set(light[0], H - 0.025, light[1]); ceilings.add(l); }
+  };
+  // floors (door thresholds go with the room on the far side of the door)
+  addFloor('lounge', [[0, 0], [W, 0], [W, D], [Xs, D], [Xs, D + S], [0, D + S]], roomMats.floor);
+  addFloor('hall', rectPts(h.x0, h.z0, h.x1, h.z1), roomMats.floor);
+  addFloor('hall', rectPts(g.door[0], D + S, g.door[1], h.z0), roomMats.floor);
+  addFloor('hall', rectPts(g.frontDoor[0], D + S, g.frontDoor[1], h.z0), roomMats.floor);
+  addFloor('kitchen', [[k.x0, k.z0], [k.x1, k.z0], [k.x1, k.z1], [g.kOpen[1], k.z1], [g.kOpen[1], 0], [g.kOpen[0], 0], [g.kOpen[0], k.z1], [k.x0, k.z1]], roomMats.tile);
+  addFloor('shower', [[s.x0, s.z0], [W, s.z0], [W, s.nz1], [s.nx0, s.nz1], [s.nx0, h.z1], [s.x0, h.z1]], roomMats.tile);
+  addFloor('shower', rectPts(Xs, g.showerDoor[0], s.x0, g.showerDoor[1]), roomMats.tile);
+  addFloor('bedMain', [[b.mx0, b.z0], [s.nx0 - 0.10, b.z0], [s.nx0 - 0.10, s.nz1 + 0.10], [W, s.nz1 + 0.10], [W, b.z1], [b.mx0, b.z1]], roomMats.floorBed);
+  addFloor('bedMain', rectPts(g.bedDoorMain[0], h.z1, g.bedDoorMain[1], b.z0), roomMats.floorBed);
+  addFloor('bedSmall', rectPts(b.sx0, b.z0, b.sx1, b.z1), roomMats.floorBed);
+  addFloor('bedSmall', rectPts(g.bedDoorSmall[0], h.z1, g.bedDoorSmall[1], b.z0), roomMats.floorBed);
+  // ceilings and lights
+  addCeil([[0, 0], [W, 0], [W, D], [Xs, D], [Xs, D + S], [0, D + S]]);
+  for (const x of [0.7, W - 0.7]) for (const z of [0.8, D / 2, D - 0.8]) { const dl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 20), roomMats.light); dl.position.set(x, H - 0.004, z); ceilings.add(dl); }
+  const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.025, 28), roomMats.cove); rose.position.set(W / 2, H - 0.012, D / 2); ceilings.add(rose);
+  const smoke = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 24), roomMats.frame); smoke.position.set(W * 0.5, H - 0.02, D - 0.9); ceilings.add(smoke);
+  addCeil(rectPts(k.x0, k.z0, k.x1, k.z1));
+  for (const z of [k.z1 - k.d * 0.3, k.z1 - k.d * 0.75]) { const dl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 20), roomMats.light); dl.position.set(0.25, H - 0.004, z); ceilings.add(dl); }
+  addCeil(rectPts(h.x0, h.z0, h.x1, h.z1), [(h.x0 + h.x1) / 2, (h.z0 + h.z1) / 2]);
+  addCeil([[s.x0, s.z0], [W, s.z0], [W, s.nz1], [s.nx0, s.nz1], [s.nx0, h.z1], [s.x0, h.z1]], [(s.x0 + W) / 2, (s.z0 + h.z1) / 2]);
+  addCeil([[b.mx0, b.z0], [s.nx0 - 0.10, b.z0], [s.nx0 - 0.10, s.nz1 + 0.10], [W, s.nz1 + 0.10], [W, b.z1], [b.mx0, b.z1]], [(b.mx0 + W) / 2, (b.z0 + b.z1) / 2]);
+  addCeil(rectPts(b.sx0, b.z0, b.sx1, b.z1), [(b.sx0 + b.sx1) / 2, (b.z0 + b.z1) / 2]);
+  // fixed fittings
+  roomGroups.kitchen.add(buildKitchenUnits(g));
+  roomGroups.shower.add(buildShowerFixtures(g));
+  const builtIns = [
+    { group: builtInWardrobe(g.wardMain, 'x', g, 'Built-in wardrobe'), room: 'bedMain', leaders: ['bedPart'] },
+    { group: builtInWardrobe(g.wardSmall, 'z', g, 'Built-in wardrobe'), room: 'bedSmall', leaders: ['bedSN', 'bedSW'] },
+  ];
+  for (const bi of builtIns) roomGroups[bi.room].add(bi.group);
+  const ledge = new THREE.Group(); ledge.name = 'Window ledge'; roomGroups.lounge.add(ledge);
   const lx0 = g.ledge.x0, lw = W - lx0;
   ledge.add(RB(lw, g.ledge.top - 0.03, g.ledge.depth, roomMats.north, lx0 + lw / 2, (g.ledge.top - 0.03) / 2, g.ledge.depth / 2));
   const cap = RB(lw, 0.03, g.ledge.depth + 0.02, roomMats.ledgeTop, lx0 + lw / 2, g.ledge.top - 0.015, (g.ledge.depth + 0.02) / 2); cap.castShadow = true; ledge.add(cap);
   ledge.add(RB(g.win[1] - g.win[0], 0.03, 0.14, roomMats.ledgeTop, (g.win[0] + g.win[1]) / 2, g.ledge.top - 0.015, -0.07));
   ledge.add(RB(lw, 0.12, 0.018, roomMats.trim, lx0 + lw / 2, 0.06, g.ledge.depth + 0.009));
-
-  const radiator = new THREE.Group(); radiator.name = 'Radiator'; lounge.add(radiator);
+  const radiator = new THREE.Group(); radiator.name = 'Radiator'; roomGroups.lounge.add(radiator);
   const R = g.rad, rl = R.z1 - R.z0, cols = Math.floor(rl / 0.05);
   for (let i = 0; i < cols; i++) radiator.add(RB(0.09, R.y1 - R.y0 - 0.04, 0.034, roomMats.radiator, 0.035 + 0.045, (R.y0 + R.y1) / 2, R.z0 + (i + 0.5) * (rl / cols)));
   radiator.add(RB(0.05, 0.035, rl, roomMats.radiator, 0.08, R.y0 + 0.02, (R.z0 + R.z1) / 2));
   radiator.add(RB(0.05, 0.035, rl, roomMats.radiator, 0.08, R.y1 - 0.02, (R.z0 + R.z1) / 2));
   for (const z of [R.z0 - 0.03, R.z1 + 0.03]) { const v = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 12), roomMats.chrome); v.position.set(0.08, R.y0 + 0.02, z); radiator.add(v); }
   radiator.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-
-  let swing = null, hall = null;
+  let swings = null;
   if (!forExport) {
-    swing = buildSwing(g); lounge.add(swing);
-    hall = new THREE.Mesh(new THREE.PlaneGeometry(2.6, H), roomMats.hall); hall.rotation.y = Math.PI; hall.position.set(g.door[0] + 0.4, H / 2, D + S + 1.3); lounge.add(hall);
+    swings = new THREE.Group(); swings.name = 'Door swings'; group.add(swings);
+    for (const dr of doorInfos(g)) if (dr.poly) swings.add(buildSwing(dr.poly));
   }
-  return { group, walls, coves, ceiling, kitchen, kceiling, swing, hall };
-}
-function swingPoly(g) {
-  const hx = g.door[0] + 0.02, hz = g.D + g.S, r = g.door[1] - g.door[0] - 0.046; const pts = [{ x: hx, z: hz }];
-  for (let i = 0; i <= 10; i++) { const a = (i / 10) * (Math.PI / 2); pts.push({ x: hx + r * Math.cos(a), z: hz - r * Math.sin(a) }); }
-  return pts;
+  return { group, walls, coves, ceilings, swings, builtIns };
 }
 const swingFill = new THREE.MeshBasicMaterial({ color: '#1d5866', transparent: true, opacity: 0.12, depthWrite: false });
 const swingLine = new THREE.LineBasicMaterial({ color: '#1d5866', transparent: true, opacity: 0.55 });
-function buildSwing(g) {
-  const grp = new THREE.Group(); grp.name = 'Door swing';
-  const P = swingPoly(g);
+function buildSwing(P) {
+  const grp = new THREE.Group();
   const shape = new THREE.Shape(P.map((p) => new THREE.Vector2(p.x, -p.z)));
   const m = new THREE.Mesh(new THREE.ShapeGeometry(shape, 16).rotateX(-Math.PI / 2), swingFill); m.position.y = 0.004; m.renderOrder = 1; grp.add(m);
   const lineGeo = new THREE.BufferGeometry().setFromPoints([...P.slice(1).map((p) => new THREE.Vector3(p.x, 0.006, p.z)), new THREE.Vector3(P[0].x, 0.006, P[0].z)]);
@@ -1086,18 +1343,17 @@ const roomRoot = new THREE.Group(); scene.add(roomRoot);
 const itemsRoot = new THREE.Group(); scene.add(itemsRoot);
 let roomObj = null;
 function applyRoomMaterials() {
-  for (const k of ['north', 'east', 'south', 'west']) roomMats[k].color.set(state.room.paint[k]);
+  for (const k of Object.keys(PHOTO_PAINT)) if (roomMats[k] && k !== 'ceiling') roomMats[k].color.set(state.room.paint[k]);
   roomMats.ceiling.color.set(state.room.paint.ceiling);
   roomMats.cove.color.set(state.room.paint.ceiling);
   roomMats.trim.color.set(state.room.trim);
-  const F = FLOORS[state.room.floor];
-  roomMats.floor.map = floorTexture(state.room.floor);
-  roomMats.floor.roughness = F.carpet ? 1 : 0.5;
-  roomMats.floor.needsUpdate = true;
+  for (const [mat, key] of [[roomMats.floor, state.room.floor], [roomMats.floorBed, state.room.floorBed]]) {
+    mat.map = floorTexture(key); mat.roughness = FLOORS[key].carpet ? 1 : 0.5; mat.needsUpdate = true;
+  }
 }
 function rebuildRoom() {
   if (roomObj) { roomRoot.remove(roomObj.group); disposeGeo(roomObj.group); }
-  G = geo(state.room);
+  G = geo(state.room); ROOMS = roomsDef(G); DOORS = doorInfos(G);
   roomObj = buildRoom(G, false);
   roomRoot.add(roomObj.group);
   applyRoomMaterials(); placeSun(); frustumPlan(); applyVisibility();
@@ -1105,25 +1361,35 @@ function rebuildRoom() {
 }
 function applyVisibility() {
   if (!roomObj) return;
-  roomObj.kitchen.visible = prefs.kitchen;
-  roomObj.ceiling.visible = mode === 'eye';
-  roomObj.kceiling.visible = mode === 'eye';
+  roomObj.ceilings.visible = mode === 'eye';
   for (const c of roomObj.coves) c.visible = mode !== 'plan';
-  if (roomObj.swing) roomObj.swing.visible = prefs.swing;
-  if (roomObj.hall) roomObj.hall.visible = mode === 'eye';
+  if (roomObj.swings) roomObj.swings.visible = prefs.swing;
   updateWalls();
 }
+/* Which walls to draw. At eye level, all of them. In the top view, all of them sliced at 1.2 m.
+   In 3D, the room you're looking at keeps its far walls full height and drops the ones between
+   you and it; every other wall is sliced at 1.2 m so you can see into the rooms around it. */
 function updateWalls() {
   if (!roomObj) return;
-  const cam = activeCamera();
+  const cam = activeCamera(), focus = prefs.focus;
   for (const w of roomObj.walls) {
-    if (mode === 'plan') { w.full.visible = false; w.stub.visible = false; w.plan.visible = true; continue; }
-    let show = true;
-    if (mode === 'orbit') {
+    let state3 = 'full';
+    if (mode === 'plan') state3 = 'plan';
+    else if (mode === 'orbit') {
       const ref = w.leader || w;
-      show = (cam.position.x - ref.mid.x) * ref.n.x + (cam.position.z - ref.mid.z) * ref.n.z > -0.05;
+      const side = focus === 'flat' ? (w.rooms[1] ? 0 : 1) : (ref.rooms[0] === focus ? 1 : ref.rooms[1] === focus ? -1 : 0);
+      if (side === 0) state3 = 'plan';
+      else state3 = side * ((cam.position.x - ref.mid.x) * ref.n.x + (cam.position.z - ref.mid.z) * ref.n.z) > -0.05 ? 'full' : 'stub';
     }
-    w.full.visible = show; w.stub.visible = !show; w.plan.visible = false;
+    w.full.visible = state3 === 'full'; w.stub.visible = state3 === 'stub'; w.plan.visible = state3 === 'plan';
+    w.state = state3;
+  }
+  const byId = Object.fromEntries(roomObj.walls.map((w) => [w.def.id, w.state]));
+  for (const bi of roomObj.builtIns) {
+    let sc = 1;
+    if (mode === 'plan') sc = PLAN_CUT / G.H;
+    else if (mode === 'orbit') sc = focus !== bi.room ? PLAN_CUT / G.H : bi.leaders.some((id) => byId[id] === 'stub') ? 0.1 / G.H : 1;
+    bi.group.scale.y = sc;
   }
 }
 
@@ -1133,7 +1399,6 @@ function footprint(it) {
   const t = -rad(it.rot), c = Math.cos(t), s = Math.sin(t);
   return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => { const lx = (a * it.w) / 2, lz = (b * it.d) / 2; return { x: it.x + lx * c + lz * s, z: it.z - lx * s + lz * c }; });
 }
-const cornerSeatDepth = (it) => clamp(Math.min(it.w, it.d) * 0.5, 0.75, 1.0);
 function localRectPoly(it, x0, z0, x1, z1) {
   const t = -rad(it.rot), c = Math.cos(t), s = Math.sin(t);
   return [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].map(([lx, lz]) => ({ x: it.x + lx * c + lz * s, z: it.z - lx * s + lz * c }));
@@ -1145,50 +1410,81 @@ function footprintParts(it) { // convex pieces, so the L of a corner sofa doesn'
   const short = it.mirror ? localRectPoly(it, w - sd, -d + sd, w, d) : localRectPoly(it, -w, -d + sd, -w + sd, d);
   return [long, short];
 }
-const partsOverlap = (A, Bs) => A.some((a) => Bs.some((b) => polysOverlap(a, b)));
 function aabb(pts) { let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity; for (const p of pts) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z); } return { minX, maxX, minZ, maxZ }; }
-const isLow = (it) => it.elev < G.ledge.top - 0.005;
-function resolve(it, snap = prefs.snap) {
+const inRect = (x, z, r, m = 0) => x > r[0] - m && x < r[2] + m && z > r[1] - m && z < r[3] + m;
+function roomAt(x, z) {
+  for (const id of ROOM_ORDER) {
+    const R = ROOMS[id], [x0, z0, x1, z1] = R.bounds;
+    if (x >= x0 && x <= x1 && z >= z0 && z <= z1 && !R.cuts.some((c) => c.shape && inRect(x, z, c.r))) return R;
+  }
+  return null;
+}
+function nearestRoom(x, z) {
+  let best = ROOMS.lounge, bd = Infinity;
+  for (const id of ROOM_ORDER) { const [x0, z0, x1, z1] = ROOMS[id].bounds; const d = Math.hypot(x - clamp(x, x0, x1), z - clamp(z, z0, z1)); if (d < bd) { bd = d; best = ROOMS[id]; } }
+  return best;
+}
+const roomFor = (it) => roomAt(it.x, it.z) || ROOMS[it.room] || nearestRoom(it.x, it.z);
+const cutsFor = (R, it) => R.cuts.filter((c) => c.low === undefined || it.elev < c.low - 0.005);
+function resolve(it, snap = prefs.snap, forced) {
+  const R = forced || roomFor(it); it.room = R.id;
   const { hx, hz } = halfExt(it);
+  const [bx0, bz0, bx1, bz1] = R.bounds, cuts = cutsFor(R, it);
   let x = it.x, z = it.z;
-  const clampAll = () => { x = clamp(x, hx, Math.max(hx, G.W - hx)); z = clamp(z, hz, Math.max(hz, G.D + G.S - hz)); };
-  clampAll();
+  const clampB = () => { x = clamp(x, bx0 + hx, Math.max(bx0 + hx, bx1 - hx)); z = clamp(z, bz0 + hz, Math.max(bz0 + hz, bz1 - hz)); };
+  clampB();
   if (snap) {
-    const sd = 0.07; let best = sd, bx = null;
-    for (const c of [0, G.W, G.Xs, G.ledge.x0]) {
+    const sd = 0.07;
+    const xs = [bx0, bx1, ...cuts.flatMap((c) => [c.r[0], c.r[2]])], zs = [bz0, bz1, ...cuts.flatMap((c) => [c.r[1], c.r[3]])];
+    let best = sd, bx = null;
+    for (const c of xs) {
       if (Math.abs(x - hx - c) < best) { best = Math.abs(x - hx - c); bx = c + hx; }
       if (Math.abs(x + hx - c) < best) { best = Math.abs(x + hx - c); bx = c - hx; }
     }
     if (bx !== null) x = bx;
-    best = sd; let bz = null; const zs = [0, G.D, G.D + G.S]; if (isLow(it)) zs.push(G.ledge.depth);
+    best = sd; let bz = null;
     for (const c of zs) {
       if (Math.abs(z - hz - c) < best) { best = Math.abs(z - hz - c); bz = c + hz; }
       if (Math.abs(z + hz - c) < best) { best = Math.abs(z + hz - c); bz = c - hz; }
     }
     if (bz !== null) z = bz;
-    clampAll();
+    clampB();
   }
-  if (x + hx > G.Xs + 1e-4 && z + hz > G.D + 1e-4) { // the shower room corner
-    const pz = z + hz - G.D, px = x + hx - G.Xs;
-    if (2 * hx > G.Xs || pz <= px) z = G.D - hz; else x = G.Xs - hx;
-  }
-  if (isLow(it) && x + hx > G.ledge.x0 + 1e-4 && z - hz < G.ledge.depth - 1e-4) { // the half-height ledge under the window
-    const pz = G.ledge.depth - (z - hz), px = x + hx - G.ledge.x0;
-    if (2 * hx > G.ledge.x0 || pz <= px) z = G.ledge.depth + hz; else x = G.ledge.x0 - hx;
+  for (let pass = 0; pass < 4; pass++) { // push out of corners that belong to other rooms, and fixed fittings
+    let moved = false;
+    for (const c of cuts) {
+      const [cx0, cz0, cx1, cz1] = c.r;
+      if (!(x + hx > cx0 + 1e-4 && x - hx < cx1 - 1e-4 && z + hz > cz0 + 1e-4 && z - hz < cz1 - 1e-4)) continue;
+      const opts = [{ x: cx0 - hx, z }, { x: cx1 + hx, z }, { x, z: cz0 - hz }, { x, z: cz1 + hz }]
+        .filter((o) => o.x - hx >= bx0 - 1e-4 && o.x + hx <= bx1 + 1e-4 && o.z - hz >= bz0 - 1e-4 && o.z + hz <= bz1 + 1e-4)
+        .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+      if (opts.length) { x = opts[0].x; z = opts[0].z; moved = true; }
+    }
+    if (!moved) break;
   }
   it.x = x; it.z = z;
 }
-function backToWall(it) {
-  const ledgeZ = isLow(it) && it.x > G.ledge.x0 ? G.ledge.depth : 0;
-  const cands = [
-    { d: it.x, rot: 270 }, { d: G.W - it.x, rot: 90 },
-    { d: it.z - ledgeZ, rot: 0 }, { d: (it.x < G.Xs ? G.D + G.S : G.D) - it.z, rot: 180 },
-  ].sort((a, b) => a.d - b.d);
+/* The walls around an item in each direction, taking the room's cut-outs into account. */
+function wallLimits(it) {
+  const R = ROOMS[it.room] || roomFor(it), b = aabb(footprint(it));
+  let west = R.bounds[0], east = R.bounds[2], north = R.bounds[1], south = R.bounds[3];
+  for (const c of cutsFor(R, it)) {
+    const [x0, z0, x1, z1] = c.r;
+    const zOver = Math.min(b.maxZ, z1) - Math.max(b.minZ, z0) > 1e-3, xOver = Math.min(b.maxX, x1) - Math.max(b.minX, x0) > 1e-3;
+    if (zOver) { if (x1 <= b.minX + 1e-3) west = Math.max(west, x1); if (x0 >= b.maxX - 1e-3) east = Math.min(east, x0); }
+    if (xOver) { if (z1 <= b.minZ + 1e-3) north = Math.max(north, z1); if (z0 >= b.maxZ - 1e-3) south = Math.min(south, z0); }
+  }
+  return { b, west, east, north, south };
+}
+function backToWall(it, forced) {
+  const R = forced || roomFor(it); it.room = R.id;
+  const L = wallLimits(it);
+  const cands = [{ d: L.b.minX - L.west, rot: 270 }, { d: L.east - L.b.maxX, rot: 90 }, { d: L.b.minZ - L.north, rot: 0 }, { d: L.south - L.b.maxZ, rot: 180 }].sort((a, b) => a.d - b.d);
   it.rot = cands[0].rot;
-  const { hx, hz } = halfExt(it);
-  if (it.rot === 270) it.x = hx; else if (it.rot === 90) it.x = G.W - hx;
-  else if (it.rot === 0) it.z = ledgeZ + hz; else it.z = (it.x < G.Xs ? G.D + G.S : G.D) - hz;
-  resolve(it, false);
+  const L2 = wallLimits(it), { hx, hz } = halfExt(it);
+  if (it.rot === 270) it.x = L2.west + hx; else if (it.rot === 90) it.x = L2.east - hx;
+  else if (it.rot === 0) it.z = L2.north + hz; else it.z = L2.south - hz;
+  resolve(it, false, R);
 }
 
 /* ---------------------------------------------------------------- clashes */
@@ -1202,14 +1498,14 @@ function polysOverlap(A, Bp, eps = 0.004) {
   }
   return true;
 }
+const partsOverlap = (A, Bs) => A.some((a) => Bs.some((b) => polysOverlap(a, b)));
 const vOverlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.01;
 const rectPoly = (x0, z0, x1, z1) => [{ x: x0, z: z0 }, { x: x1, z: z0 }, { x: x1, z: z1 }, { x: x0, z: z1 }];
 function obstacles() {
-  return [
-    { name: 'the radiator', poly: rectPoly(0, G.rad.z0 - 0.04, G.rad.depth, G.rad.z1 + 0.04), y0: 0, y1: G.rad.y1 + 0.02 },
-    { name: 'the door swing', poly: swingPoly(G), y0: 0, y1: G.doorTop },
-    { name: 'the window ledge', poly: rectPoly(G.ledge.x0, 0, G.W, G.ledge.depth), y0: 0, y1: G.ledge.top },
-  ];
+  const out = [{ name: 'the radiator', poly: rectPoly(0, G.rad.z0 - 0.04, G.rad.depth, G.rad.z1 + 0.04), y0: 0, y1: G.rad.y1 + 0.02 }];
+  for (const dr of DOORS) if (dr.poly) out.push({ name: dr.label + ' swing', poly: dr.poly, y0: 0, y1: G.doorTop });
+  for (const id of ROOM_ORDER) for (const c of ROOMS[id].cuts) if (c.name) out.push({ name: c.name, poly: rectPoly(...c.r), y0: 0, y1: c.low ?? G.H });
+  return out;
 }
 function computeClashes() {
   const list = [], flagged = new Set(), byId = new Map();
@@ -1228,7 +1524,7 @@ function computeClashes() {
   }
   return { list, flagged, byId };
 }
-function hitsAnything(it) { // used to find a free spot for a new item
+function hitsAnything(it) {
   if (it.type === 'rug') return false;
   const mine = footprintParts(it);
   for (const o of state.items) {
@@ -1237,12 +1533,12 @@ function hitsAnything(it) { // used to find a free spot for a new item
   }
   return obstacles().some((o) => vOverlap(it.elev, it.elev + it.h, o.y0, o.y1) && partsOverlap(mine, [o.poly]));
 }
-function placeFree(it) {
-  const cx = G.W / 2, cz = G.D / 2, cands = [];
-  for (let x = 0; x <= G.W; x += 0.2) for (let z = 0; z <= G.D + G.S; z += 0.2) cands.push([x, z, Math.hypot(x - cx, z - cz)]);
+function placeFree(it, R) {
+  const [x0, z0, x1, z1] = R.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, cands = [];
+  for (let x = x0; x <= x1; x += 0.2) for (let z = z0; z <= z1; z += 0.2) cands.push([x, z, Math.hypot(x - cx, z - cz)]);
   cands.sort((a, b) => a[2] - b[2]);
-  for (const [x, z] of cands) { it.x = x; it.z = z; resolve(it, false); if (!hitsAnything(it)) return; }
-  it.x = cx; it.z = cz; resolve(it, false);
+  for (const [x, z] of cands) { it.x = x; it.z = z; resolve(it, false, R); if (!hitsAnything(it)) return; }
+  it.x = cx; it.z = cz; resolve(it, false, R);
 }
 
 /* -------------------------------------------------------------- selection */
@@ -1320,27 +1616,34 @@ let nudgeTimer = 0;
 function commitSoon() { clearTimeout(nudgeTimer); nudgeTimer = setTimeout(commit, 450); }
 
 /* ------------------------------------------------------------- item ops */
+const BEDROOM_KINDS = new Set(CATALOG.filter((c) => c.group === 'Bedroom').map((c) => c.kind));
+function targetRoom(kind) {
+  const f = prefs.focus;
+  if (f !== 'flat') return f;
+  return BEDROOM_KINDS.has(kind) ? 'bedMain' : 'lounge';
+}
 function newItem(kind, over = {}) {
   const c = CAT[kind];
-  return { id: uid(), type: c.type, kind, name: '', x: G.W / 2, z: G.D / 2, rot: 0, w: c.w, d: c.d, h: c.h, elev: c.elev || 0, color: c.color, mirror: false, ...over };
+  return { id: uid(), type: c.type, kind, name: '', x: G.W / 2, z: G.D / 2, rot: 0, w: c.w, d: c.d, h: c.h, elev: c.elev || 0, color: c.color, mirror: false, room: 'lounge', ...over };
 }
 function addItem(kind) {
-  const c = CAT[kind]; const it = newItem(kind);
+  const c = CAT[kind], R = ROOMS[targetRoom(kind)], it = newItem(kind, { room: R.id });
+  it.x = (R.bounds[0] + R.bounds[2]) / 2; it.z = (R.bounds[1] + R.bounds[3]) / 2;
   if (c.type === 'tv') {
-    const unit = state.items.find((i) => i.type === 'tvUnit' || i.type === 'sideboard');
-    if (unit) { it.x = unit.x; it.z = unit.z; it.rot = unit.rot; it.elev = unit.elev + unit.h; }
-    else backToWall(it);
-  } else if (c.wall) backToWall(it);
-  else placeFree(it);
+    const unit = state.items.find((i) => (i.type === 'tvUnit' || i.type === 'sideboard') && i.room === R.id);
+    if (unit) { it.x = unit.x; it.z = unit.z; it.rot = unit.rot; it.elev = unit.elev + unit.h; resolve(it, false, R); }
+    else backToWall(it, R);
+  } else if (c.wall) backToWall(it, R);
+  else placeFree(it, R);
   state.items.push(it); syncItems(); select(it.id); commit();
-  toast(`Added ${c.name.toLowerCase()}. Drag it to move it.`);
+  toast(`Added ${c.name.toLowerCase()} to the ${ROOM_NAMES[R.id].toLowerCase()}. Drag it to move it.`);
 }
 function deleteItem(id) { state.items = state.items.filter((i) => i.id !== id); if (selectedId === id) selectedId = null; syncItems(); select(null); commit(); }
 function duplicateItem(it) {
-  const copy = { ...it, id: uid(), x: it.x + 0.2, z: it.z + 0.2 }; resolve(copy);
+  const copy = { ...it, id: uid(), x: it.x + 0.2, z: it.z + 0.2 }; resolve(copy, prefs.snap, ROOMS[it.room]);
   state.items.push(copy); syncItems(); select(copy.id); commit();
 }
-function rotateItem(it, delta) { it.rot = (((it.rot + delta) % 360) + 360) % 360; resolve(it); syncItems(); commitSoon(); }
+function rotateItem(it, delta) { it.rot = (((it.rot + delta) % 360) + 360) % 360; resolve(it, prefs.snap, ROOMS[it.room]); syncItems(); commitSoon(); }
 
 /* ------------------------------------------------------------ measuring */
 const measureGroup = new THREE.Group(); scene.add(measureGroup);
@@ -1348,7 +1651,7 @@ const measureMat = new THREE.LineBasicMaterial({ color: '#1d5866', depthTest: fa
 const labelsEl = $('#labels'); let labelSpecs = [];
 function setLabels(specs) {
   labelsEl.replaceChildren();
-  labelSpecs = specs.map((s) => { const el = document.createElement('div'); el.className = 'dim ' + (s.cls || ''); el.textContent = s.text; labelsEl.appendChild(el); return { el, p: new THREE.Vector3(...s.p) }; });
+  labelSpecs = specs.map((s) => { const el = document.createElement('div'); el.className = 'dim ' + (s.cls || ''); el.textContent = s.text; labelsEl.appendChild(el); return { el, p: new THREE.Vector3(...s.p), left: !!s.left }; });
 }
 const _v = new THREE.Vector3();
 function projectLabels() {
@@ -1357,39 +1660,35 @@ function projectLabels() {
     _v.copy(s.p).project(cam);
     const vis = _v.z < 1 && _v.z > -1 && Math.abs(_v.x) < 1.1 && Math.abs(_v.y) < 1.1;
     s.el.style.display = vis ? '' : 'none';
-    if (vis) s.el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * size.w).toFixed(1)}px, ${((-_v.y * 0.5 + 0.5) * size.h).toFixed(1)}px) translate(-50%, -50%)`;
+    if (vis) s.el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * size.w).toFixed(1)}px, ${((-_v.y * 0.5 + 0.5) * size.h).toFixed(1)}px) translate(${s.left ? '0' : '-50%'}, -50%)`;
   }
 }
+function roomCentre(id) { const [x0, z0, x1, z1] = ROOMS[id].bounds; return [(x0 + x1) / 2, (z0 + z1) / 2]; }
 function updateMeasure() {
   disposeGeo(measureGroup); measureGroup.clear();
   const specs = [], pts = [];
   const seg = (x0, z0, x1, z1, y) => { pts.push(x0, y, z0, x1, y, z1); };
   const tick = (x, z, y, alongX) => { const t = 0.06; if (alongX) seg(x, z - t, x, z + t, y); else seg(x - t, z, x + t, z, y); };
   if (mode === 'plan') {
-    const y = G.H + 0.02, zl = G.D + G.S + 0.42, xl = G.W + 0.45, xw = -0.5;
-    seg(0, zl, G.W, zl, y); tick(0, zl, y, true); tick(G.W, zl, y, true);
+    const y = G.H + 0.02, xl = G.W + 0.45;
     seg(xl, 0, xl, G.D, y); tick(xl, 0, y, false); tick(xl, G.D, y, false);
-    seg(xw, 0, xw, G.D + G.S, y); tick(xw, 0, y, false); tick(xw, G.D + G.S, y, false);
-    specs.push({ text: `${cm(G.W)} cm`, p: [G.W / 2, y, zl], cls: 'room' });
     specs.push({ text: `${cm(G.D)} cm`, p: [xl, y, G.D / 2], cls: 'room' });
-    specs.push({ text: `${cm(G.D + G.S)} cm`, p: [xw, y, (G.D + G.S) / 2], cls: 'room' });
+    const k = G.kit, h = G.hall, b = G.bed, sh = G.shw;
+    const tagAt = { lounge: [0.12, 0.35], kitchen: [k.x0 + 0.7, k.z0 + 0.85], hall: [h.x0 + 0.08, h.z0 + 0.62], shower: [sh.x0 + 0.1, sh.z0 + 0.62], bedMain: [b.mx0 + 0.72, b.z1 - 0.3], bedSmall: [b.sx0 + 0.1, b.z1 - 0.3] };
+    for (const id of ROOM_ORDER) specs.push({ text: `${ROOM_NAMES[id]} · ${id === 'lounge' ? `${cm(G.D + G.S)} × ${cm(G.W)}` : LISTING_CM[id]}`, p: [tagAt[id][0], y, tagAt[id][1]], cls: 'roomtag', left: true });
     specs.push({ text: 'Window', p: [(G.win[0] + G.win[1]) / 2, y, -0.42], cls: 'tag' });
-    specs.push({ text: 'Hall door', p: [(G.door[0] + G.door[1]) / 2, y, G.D + G.S + 0.2], cls: 'tag' });
-    if (prefs.kitchen) specs.push({ text: 'Kitchen', p: [0.25, y, -1.9], cls: 'tag' });
+    specs.push({ text: 'Front door', p: [(G.frontDoor[0] + G.frontDoor[1]) / 2, y, G.D + G.S - 0.25], cls: 'tag' });
     specs.push({ text: 'Radiator', p: [0.36, y, G.rad.z0 - 0.14], cls: 'tag' });
     for (const it of state.items) if (it.id !== selectedId) specs.push({ text: displayName(it), p: [it.x, y, it.z], cls: 'name' });
   }
   const it = selectedItem();
   if (it && prefs.measure) {
-    const b = aabb(footprint(it)), y = mode === 'plan' ? G.H + 0.02 : Math.min(it.elev, 1.5) + 0.012;
-    const eastB = b.maxZ > G.D + 1e-3 ? G.Xs : G.W;
-    const northB = isLow(it) && b.maxX > G.ledge.x0 + 1e-3 ? G.ledge.depth : 0;
-    const southB = b.maxX > G.Xs + 1e-3 ? G.D : G.D + G.S;
+    const L = wallLimits(it), b = L.b, y = mode === 'plan' ? G.H + 0.02 : Math.min(it.elev, 1.5) + 0.012;
     const gaps = [
-      { v: b.minX, x0: 0, z0: it.z, x1: b.minX, z1: it.z },
-      { v: eastB - b.maxX, x0: b.maxX, z0: it.z, x1: eastB, z1: it.z },
-      { v: b.minZ - northB, x0: it.x, z0: northB, x1: it.x, z1: b.minZ },
-      { v: southB - b.maxZ, x0: it.x, z0: b.maxZ, x1: it.x, z1: southB },
+      { v: b.minX - L.west, x0: L.west, z0: it.z, x1: b.minX, z1: it.z },
+      { v: L.east - b.maxX, x0: b.maxX, z0: it.z, x1: L.east, z1: it.z },
+      { v: b.minZ - L.north, x0: it.x, z0: L.north, x1: it.x, z1: b.minZ },
+      { v: L.south - b.maxZ, x0: it.x, z0: b.maxZ, x1: it.x, z1: L.south },
     ];
     for (const gp of gaps) {
       if (gp.v < 0.01) continue;
@@ -1411,26 +1710,55 @@ const eye = { x: 0.7, z: 3.9, yaw: 0.6, pitch: -0.1, init: false, anim: null };
 const activeCamera = () => (mode === 'orbit' ? persp : mode === 'plan' ? ortho : eyeCam);
 const HINTS = {
   orbit: 'Drag to orbit · right-drag or two fingers to pan · scroll or pinch to zoom · drag furniture to move it · R turns it',
-  plan: 'Drag to pan · scroll or pinch to zoom · drag furniture to move it · R turns the selected item',
-  eye: 'Drag to look around · click the floor to walk there · W A S D or arrow keys to move',
+  plan: 'Drag to pan · scroll or pinch to zoom · drag furniture to move it, even into another room · R turns the selected item',
+  eye: 'Drag to look around · click the floor to walk there · W A S D or arrow keys to walk, through doorways too',
 };
 function setMode(m) {
   mode = m;
   orbit.enabled = m === 'orbit'; planCtl.enabled = m === 'plan';
   document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === m)));
-  $('#eye-presets').hidden = m !== 'eye';
+  $('#eye-wrap').hidden = m !== 'eye'; $('#focus-wrap').hidden = m === 'eye';
   $('#hint').textContent = HINTS[m]; $('#hint').hidden = false;
-  if (m === 'eye' && !eye.init) presetEye('door');
+  if (m === 'eye' && !eye.init) presetEye(prefs.focus === 'flat' || prefs.focus === 'lounge' ? 'lounge-door' : prefs.focus);
   if (m === 'eye') applyEye();
   setBackground(); applyVisibility(); updateMeasure();
 }
-function resetOrbitView() { persp.position.set(-2.7, 5.6, G.D + 3.5); orbit.target.set(G.W / 2, 0.3, G.D / 2 - 0.2); orbit.update(); }
-function resetPlanView() { const cx = G.W / 2 - 0.2, cz = (G.D + G.S) / 2 + 0.05; ortho.position.set(cx, 30, cz); planCtl.target.set(cx, 0, cz); ortho.zoom = 1; ortho.updateProjectionMatrix(); planCtl.update(); }
-function resetView() { if (mode === 'orbit') resetOrbitView(); else if (mode === 'plan') resetPlanView(); else presetEye('door'); }
+function focusBounds() {
+  if (prefs.focus === 'flat') return G.flat;
+  const [x0, z0, x1, z1] = ROOMS[prefs.focus].bounds; return [x0 - 0.35, z0 - 0.35, x1 + 0.35, z1 + 0.35];
+}
+const DEFAULT_DIR = new THREE.Vector3(-0.49, 0.59, 0.64).normalize();
+function resetOrbitView(keepDir) {
+  const [x0, z0, x1, z1] = focusBounds(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  let dir = DEFAULT_DIR.clone();
+  if (keepDir) { const cur = persp.position.clone().sub(orbit.target).normalize(); if (cur.y > 0.25) dir = cur; }
+  orbit.target.set(cx, 0.3, cz);
+  const corners = []; for (const x of [x0, x1]) for (const z of [z0, z1]) for (const y of [0, G.H]) corners.push(new THREE.Vector3(x, y, z));
+  const cam = persp.clone(), v = new THREE.Vector3(); let lo = 2, hi = 90;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2; cam.position.copy(orbit.target).addScaledVector(dir, mid); cam.lookAt(orbit.target); cam.updateMatrixWorld();
+    const fits = corners.every((p) => { v.copy(p).project(cam); return v.z < 1 && Math.abs(v.x) <= 0.9 && v.y <= 0.8 && v.y >= -0.9; });
+    if (fits) hi = mid; else lo = mid;
+  }
+  persp.position.copy(orbit.target).addScaledVector(dir, hi); orbit.update();
+}
+let cameraTouched = false;
+orbit.addEventListener('start', () => { cameraTouched = true; });
+planCtl.addEventListener('start', () => { cameraTouched = true; });
+function resetPlanView() {
+  const [x0, z0, x1, z1] = focusBounds(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  frustumPlan(); ortho.position.set(cx, 30, cz); planCtl.target.set(cx, 0, cz); ortho.zoom = 1; ortho.updateProjectionMatrix(); planCtl.update();
+}
+function resetView() { if (mode === 'orbit') resetOrbitView(false); else if (mode === 'plan') resetPlanView(); else presetEye($('#eye-where').value); }
 function frustumPlan() {
-  const aspect = size.w / size.h, bw = G.W + 2.4, bh = G.D + G.S + 2.1; let hw = bw / 2, hh = bh / 2;
+  const [x0, z0, x1, z1] = focusBounds(), aspect = size.w / size.h, bw = x1 - x0 + 1.2, bh = z1 - z0 + 1.2; let hw = bw / 2, hh = bh / 2;
   if (hw / hh > aspect) hh = hw / aspect; else hw = hh * aspect;
   ortho.left = -hw; ortho.right = hw; ortho.top = hh; ortho.bottom = -hh; ortho.updateProjectionMatrix();
+}
+function setFocus(f) {
+  prefs.focus = f; persist(); $('#focus').value = f;
+  $('#add-target').textContent = f === 'flat' ? 'the lounge (beds go in the main bedroom)' : `the ${ROOM_NAMES[f].toLowerCase()}`;
+  resetOrbitView(true); resetPlanView(); updateWalls(); updateMeasure();
 }
 function applyEye() {
   eyeCam.position.set(eye.x, 1.55, eye.z);
@@ -1438,18 +1766,29 @@ function applyEye() {
   eyeCam.lookAt(eye.x + Math.sin(eye.yaw) * cp, 1.55 + Math.sin(eye.pitch), eye.z - Math.cos(eye.yaw) * cp);
 }
 const PRESETS = {
-  door: () => ({ x: 0.68, z: G.D + G.S - 0.3, tx: G.W - 0.3, tz: 0.2 }),
-  window: () => ({ x: G.W - 0.55, z: 0.5, tx: 0.5, tz: G.D }),
-  corner: () => ({ x: G.W - 0.35, z: G.D - 0.3, tx: 0.3, tz: 0.0 }),
+  'lounge-door': () => ({ x: 0.62, z: G.D + G.S - 0.3, tx: G.W - 0.3, tz: 0.2 }),
+  'lounge-window': () => ({ x: G.W - 0.55, z: 0.5, tx: 0.5, tz: G.D }),
+  'lounge-corner': () => ({ x: G.W - 0.35, z: G.D - 0.3, tx: 0.3, tz: 0.0 }),
+  kitchen: () => ({ x: 0.75, z: -0.45, tx: -0.2, tz: G.kit.z0 }),
+  hall: () => ({ x: G.hall.x1 - 0.35, z: (G.hall.z0 + G.hall.z1) / 2, tx: G.hall.x0, tz: (G.hall.z0 + G.hall.z1) / 2 + 0.1 }),
+  bedMain: () => ({ x: (G.bedDoorMain[0] + G.bedDoorMain[1]) / 2, z: G.bed.z0 + 0.35, tx: G.W - 0.3, tz: G.bed.z1 }),
+  bedSmall: () => ({ x: (G.bedDoorSmall[0] + G.bedDoorSmall[1]) / 2, z: G.bed.z0 + 0.95, tx: G.bed.sx0 + 0.3, tz: G.bed.z1 }),
+  shower: () => ({ x: G.shw.x0 + 0.22, z: (G.showerDoor[0] + G.showerDoor[1]) / 2 + 0.1, tx: G.W, tz: G.shw.z0 + 0.75, pitch: -0.32 }),
 };
 function presetEye(k) {
-  const p = PRESETS[k](); eye.anim = null; eye.x = p.x; eye.z = p.z;
-  eye.yaw = Math.atan2(p.tx - p.x, -(p.tz - p.z)); eye.pitch = -0.1; eye.init = true; applyEye();
+  const p = (PRESETS[k] || PRESETS['lounge-door'])(); eye.anim = null; eye.x = p.x; eye.z = p.z;
+  eye.yaw = Math.atan2(p.tx - p.x, -(p.tz - p.z)); eye.pitch = p.pitch ?? -0.1; eye.init = true; applyEye();
+  $('#eye-where').value = PRESETS[k] ? k : 'lounge-door';
 }
-function clampEye(x, z) {
-  x = clamp(x, 0.2, G.W - 0.2); z = clamp(z, 0.3, G.D + G.S - 0.2);
-  if (x > G.Xs - 0.2 && z > G.D - 0.2) { if (z - (G.D - 0.2) < x - (G.Xs - 0.2)) z = G.D - 0.2; else x = G.Xs - 0.2; }
-  return [x, z];
+/* Where you can stand at eye level: inside a room and clear of its fittings, or in a doorway. */
+function walkable(x, z, m = 0.18) {
+  for (const id of ROOM_ORDER) {
+    const R = ROOMS[id], [x0, z0, x1, z1] = R.bounds;
+    if (x < x0 + m || x > x1 - m || z < z0 + m || z > z1 - m) continue;
+    if (R.cuts.some((c) => inRect(x, z, c.r, m))) continue;
+    return true;
+  }
+  return DOORS.some((dr) => inRect(x, z, dr.pass));
 }
 let themeAccent = '#1d5866', themeWarn = '#b2431b', stageColor = new THREE.Color('#dfe5e3');
 function readTheme() {
@@ -1490,7 +1829,12 @@ window.addEventListener('pointermove', (e) => {
   if (drag && e.pointerId === drag.pid) {
     if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return;
     drag.moved = true; setRay(e);
-    if (ray.ray.intersectPlane(drag.plane, _p)) { const it = findItem(drag.id); if (!it) return; it.x = _p.x + drag.off.x; it.z = _p.z + drag.off.z; resolve(it); onItemMoved(it); }
+    if (ray.ray.intersectPlane(drag.plane, _p)) {
+      const it = findItem(drag.id); if (!it) return;
+      const before = it.room;
+      it.x = _p.x + drag.off.x; it.z = _p.z + drag.off.z; resolve(it); onItemMoved(it);
+      if (it.room !== before) renderPlaced();
+    }
   } else if (press && e.pointerId === press.pid) {
     const dx = e.clientX - press.sx, dy = e.clientY - press.sy;
     if (Math.hypot(dx, dy) > 4) press.moved = true;
@@ -1512,14 +1856,24 @@ function endPointer(e, cancelled) {
 }
 window.addEventListener('pointerup', (e) => endPointer(e, false));
 window.addEventListener('pointercancel', (e) => endPointer(e, true));
+function stepTo(nx, nz) {
+  if (walkable(nx, nz)) { eye.x = nx; eye.z = nz; }
+  else if (walkable(nx, eye.z)) eye.x = nx;
+  else if (walkable(eye.x, nz)) eye.z = nz;
+}
 canvas.addEventListener('wheel', (e) => {
   if (mode !== 'eye') return; e.preventDefault();
-  const s = -e.deltaY * 0.002; [eye.x, eye.z] = clampEye(eye.x + Math.sin(eye.yaw) * s, eye.z - Math.cos(eye.yaw) * s); eye.anim = null;
+  const s = -e.deltaY * 0.002; eye.anim = null; stepTo(eye.x + Math.sin(eye.yaw) * s, eye.z - Math.cos(eye.yaw) * s);
 }, { passive: false });
 function walkTo(x, z) {
-  const [tx, tz] = clampEye(x, z);
+  let tx = x, tz = z;
+  if (!walkable(tx, tz)) {
+    const R = roomAt(x, z); if (!R) return;
+    const [x0, z0, x1, z1] = R.bounds; tx = clamp(x, x0 + 0.25, x1 - 0.25); tz = clamp(z, z0 + 0.25, z1 - 0.25);
+    if (!walkable(tx, tz)) return;
+  }
   if (reduceMotion) { eye.x = tx; eye.z = tz; return; }
-  eye.anim = { x0: eye.x, z0: eye.z, x1: tx, z1: tz, t: 0, dur: clamp(Math.hypot(tx - eye.x, tz - eye.z) / 1.6, 0.25, 1.4) };
+  eye.anim = { x0: eye.x, z0: eye.z, x1: tx, z1: tz, t: 0, dur: clamp(Math.hypot(tx - eye.x, tz - eye.z) / 1.6, 0.25, 2.2) };
 }
 const keys = new Set();
 const typing = (e) => { const t = e.target; return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); };
@@ -1538,7 +1892,7 @@ window.addEventListener('keydown', (e) => {
     if (k === 'e') { rotateItem(it, 15); return; }
     const step = e.shiftKey ? 0.1 : 0.01; let dx = 0, dz = 0;
     if (k === 'arrowleft') dx = -step; else if (k === 'arrowright') dx = step; else if (k === 'arrowup') dz = -step; else if (k === 'arrowdown') dz = step;
-    if (dx || dz) { e.preventDefault(); it.x += dx; it.z += dz; resolve(it, false); onItemMoved(it); commitSoon(); return; }
+    if (dx || dz) { e.preventDefault(); it.x += dx; it.z += dz; resolve(it, false, ROOMS[it.room]); onItemMoved(it); commitSoon(); return; }
   }
   if (mode === 'eye' && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { e.preventDefault(); keys.add(k); }
 });
@@ -1554,13 +1908,13 @@ function stepEye(dt) {
   if (keys.has('arrowup')) f += 1; if (keys.has('arrowdown')) f -= 1; if (keys.has('arrowleft')) turn -= 1; if (keys.has('arrowright')) turn += 1;
   if (f || s || turn) {
     eye.anim = null; eye.yaw += turn * 1.6 * dt; const sp = 1.4 * dt;
-    [eye.x, eye.z] = clampEye(eye.x + (Math.sin(eye.yaw) * f + Math.cos(eye.yaw) * s) * sp, eye.z + (-Math.cos(eye.yaw) * f + Math.sin(eye.yaw) * s) * sp);
+    stepTo(eye.x + (Math.sin(eye.yaw) * f + Math.cos(eye.yaw) * s) * sp, eye.z + (-Math.cos(eye.yaw) * f + Math.sin(eye.yaw) * s) * sp);
   }
   applyEye();
 }
 
 /* -------------------------------------------------------------------- UI */
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove('show'), 2600); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove('show'), 2800); }
 function renderCatalog() {
   const root = $('#catalog'); root.replaceChildren();
   const groups = [...new Set(CATALOG.map((c) => c.group))];
@@ -1584,10 +1938,12 @@ function renderPlaced() {
   const ul = $('#placed'); ul.replaceChildren();
   $('#count').textContent = String(state.items.length);
   $('#placed-empty').hidden = state.items.length > 0;
-  for (const it of state.items) {
+  const order = (it) => ROOM_ORDER.indexOf(it.room);
+  for (const it of state.items.slice().sort((a, b) => order(a) - order(b))) {
     const li = document.createElement('li');
     const b = document.createElement('button'); b.className = 'pick'; b.type = 'button'; b.setAttribute('aria-current', String(it.id === selectedId));
-    const n = document.createElement('span'); n.textContent = displayName(it);
+    const n = document.createElement('span'); n.className = 'nm'; n.textContent = displayName(it);
+    const r = document.createElement('small'); r.textContent = ROOM_NAMES[it.room] || ''; n.appendChild(r);
     const d = document.createElement('span'); d.className = 'd'; d.textContent = `${cm(it.w)} × ${cm(it.d)}`;
     b.append(n, d); b.addEventListener('click', () => select(it.id));
     li.appendChild(b);
@@ -1624,7 +1980,7 @@ function refreshInspector(valuesOnly) {
   $('#ins-mirror').hidden = it.type !== 'cornerSofa';
   const cl = clashes.byId.get(it.id); const msg = $('#ins-clash');
   msg.hidden = !cl; if (cl) msg.textContent = 'Overlaps ' + [...new Set(cl)].join(', ') + '.';
-  $('#ins-pos').textContent = `Centre ${cm(it.x)} cm from the radiator wall, ${cm(it.z)} cm from the window wall`;
+  $('#ins-pos').textContent = `In the ${(ROOM_NAMES[it.room] || 'lounge').toLowerCase()}. Drag it through a doorway to move it to another room.`;
   if (!valuesOnly || inspectorFor !== it.id || refreshInspector.lastColor !== it.color) {
     swatchRow($('#ins-swatches'), FABRICS, it.color, (c, live) => { it.color = c; syncItems(); if (!live) commit(); }, 'Pick any colour');
     refreshInspector.lastColor = it.color;
@@ -1632,14 +1988,14 @@ function refreshInspector(valuesOnly) {
   inspectorFor = it.id;
 }
 function bindInspector() {
-  const num = (id, fn) => $(id).addEventListener('change', (e) => { const it = selectedItem(); if (!it) return; const v = parseFloat(e.target.value); if (!Number.isFinite(v)) { refreshInspector(true); return; } fn(it, v / 100); resolve(it, false); syncItems(); commit(); });
+  const num = (id, fn) => $(id).addEventListener('change', (e) => { const it = selectedItem(); if (!it) return; const v = parseFloat(e.target.value); if (!Number.isFinite(v)) { refreshInspector(true); return; } fn(it, v / 100); resolve(it, false, ROOMS[it.room]); syncItems(); commit(); });
   num('#ins-w', (it, v) => { it.w = clamp(v, 0.02, 6); });
   num('#ins-d', (it, v) => { it.d = clamp(v, 0.01, 6); });
   num('#ins-h', (it, v) => { it.h = clamp(v, 0.005, 3); });
   num('#ins-elev', (it, v) => { it.elev = clamp(v, 0, 2.8); });
   $('#ins-name').addEventListener('change', (e) => { const it = selectedItem(); if (!it) return; it.name = e.target.value.trim().slice(0, 60); syncItems(); commit(); });
   document.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => { const it = selectedItem(); if (it) rotateItem(it, +b.dataset.rot); }));
-  $('#ins-wall').addEventListener('click', () => { const it = selectedItem(); if (!it) return; backToWall(it); syncItems(); commit(); });
+  $('#ins-wall').addEventListener('click', () => { const it = selectedItem(); if (!it) return; backToWall(it, ROOMS[it.room]); syncItems(); commit(); });
   $('#ins-mirror').addEventListener('click', () => { const it = selectedItem(); if (!it) return; it.mirror = !it.mirror; syncItems(); commit(); });
   $('#ins-dup').addEventListener('click', () => { const it = selectedItem(); if (it) duplicateItem(it); });
   $('#ins-del').addEventListener('click', () => { const it = selectedItem(); if (it) deleteItem(it.id); });
@@ -1648,40 +2004,61 @@ function bindInspector() {
 function renderRoomPanel() {
   const setv = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; };
   setv('#room-w', cm(state.room.W)); setv('#room-d', cm(state.room.D + ALCOVE)); setv('#room-h', cm(state.room.H));
-  $('#imperial').textContent = `That is ${ftin(state.room.W)} × ${ftin(state.room.D + ALCOVE)}, with a ${ftin(state.room.H)} ceiling. The floor area is ${(state.room.W * state.room.D + G.Xs * G.S).toFixed(1)} m².`;
+  $('#imperial').textContent = `That is ${ftin(state.room.W)} × ${ftin(state.room.D + ALCOVE)}, with a ${ftin(state.room.H)} ceiling.`;
+  const sizes = $('#sizes'); sizes.replaceChildren();
+  for (const id of ROOM_ORDER) {
+    const tr = document.createElement('tr'); const a = document.createElement('th'); a.textContent = ROOM_NAMES[id];
+    const b = document.createElement('td'); b.textContent = id === 'lounge' ? `${(G.D + G.S).toFixed(2)} × ${G.W.toFixed(2)} m` : LISTING[id];
+    tr.append(a, b); sizes.appendChild(tr);
+  }
   const paints = $('#paints'); paints.replaceChildren();
-  for (const { key, label } of WALLS_UI) {
-    const row = document.createElement('div'); row.className = 'paint-row';
-    const l = document.createElement('div'); l.className = 'lbl'; l.innerHTML = '<b></b><span></span>';
-    l.querySelector('b').textContent = label; l.querySelector('span').textContent = state.room.paint[key].toUpperCase();
-    const sw = document.createElement('div'); sw.className = 'swatches';
-    swatchRow(sw, PAINTS, state.room.paint[key], (c, live) => { state.room.paint[key] = c; applyRoomMaterials(); l.querySelector('span').textContent = c.toUpperCase(); if (!live) { commit(); renderRoomPanel(); } }, `Pick any colour for the ${label.toLowerCase()}`);
-    row.append(l, sw); paints.appendChild(row);
+  for (const grp of WALLS_UI) {
+    const h = document.createElement('h3'); h.textContent = grp.title; paints.appendChild(h);
+    for (const { key, label } of grp.rows) {
+      const row = document.createElement('div'); row.className = 'paint-row';
+      const l = document.createElement('div'); l.className = 'lbl'; l.innerHTML = '<b></b><span></span>';
+      l.querySelector('b').textContent = label; l.querySelector('span').textContent = state.room.paint[key].toUpperCase();
+      const sw = document.createElement('div'); sw.className = 'swatches';
+      swatchRow(sw, PAINTS, state.room.paint[key], (c, live) => { state.room.paint[key] = c; applyRoomMaterials(); l.querySelector('span').textContent = c.toUpperCase(); if (!live) { commit(); renderRoomPanel(); } }, `Pick any colour for the ${label.toLowerCase()}`);
+      row.append(l, sw); paints.appendChild(row);
+    }
   }
-  const floors = $('#floors'); floors.replaceChildren();
-  for (const [k, F] of Object.entries(FLOORS)) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', String(state.room.floor === k));
-    const i = document.createElement('i'); i.style.background = F.swatch; b.append(i, document.createTextNode(F.label));
-    b.addEventListener('click', () => { state.room.floor = k; applyRoomMaterials(); commit(); renderRoomPanel(); }); floors.appendChild(b);
-  }
+  const floorChips = (el, key) => {
+    el.replaceChildren();
+    for (const [k, F] of Object.entries(FLOORS)) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', String(state.room[key] === k));
+      const i = document.createElement('i'); i.style.background = F.swatch; b.append(i, document.createTextNode(F.label.replace(', as now', key === 'floor' ? ', as now' : '')));
+      b.addEventListener('click', () => { state.room[key] = k; applyRoomMaterials(); commit(); renderRoomPanel(); }); el.appendChild(b);
+    }
+  };
+  floorChips($('#floors'), 'floor'); floorChips($('#floors-bed'), 'floorBed');
   const trims = $('#trims'); trims.replaceChildren();
   for (const [c, name] of TRIMS) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', String(state.room.trim.toLowerCase() === c));
     const i = document.createElement('i'); i.style.background = c; b.append(i, document.createTextNode(name));
     b.addEventListener('click', () => { state.room.trim = c; applyRoomMaterials(); commit(); renderRoomPanel(); }); trims.appendChild(b);
   }
-  $('#pf-kitchen').checked = prefs.kitchen; $('#pf-swing').checked = prefs.swing; $('#pf-measure').checked = prefs.measure; $('#pf-snap').checked = prefs.snap;
+  $('#pf-swing').checked = prefs.swing; $('#pf-measure').checked = prefs.measure; $('#pf-snap').checked = prefs.snap;
 }
 function bindRoomPanel() {
   const dim = (id, key, lo, hi) => $(id).addEventListener('change', (e) => {
     const v = parseFloat(e.target.value); if (!Number.isFinite(v)) { renderRoomPanel(); return; }
-    state.room[key] = clamp(v / 100 - (key === 'D' ? ALCOVE : 0), lo, hi); rebuildRoom(); state.items.forEach((it) => resolve(it, false)); syncItems(); renderRoomPanel(); commit();
-    resetPlanView();
+    const old = geo(state.room);
+    state.room[key] = clamp(v / 100 - (key === 'D' ? ALCOVE : 0), lo, hi);
+    rebuildRoom();
+    // rooms beyond the lounge move with it, so carry their furniture along
+    const dz = G.hall.z0 - old.hall.z0, dxBed = G.bed.mx0 - old.bed.mx0, dxEast = G.W - old.W;
+    for (const it of state.items) {
+      if (['hall', 'shower', 'bedMain', 'bedSmall'].includes(it.room)) it.z += dz;
+      if (it.room === 'bedMain' || it.room === 'bedSmall') it.x += dxBed;
+      if (it.room === 'shower') it.x += dxEast;
+      resolve(it, false, ROOMS[it.room] || roomFor(it));
+    }
+    syncItems(); renderRoomPanel(); commit(); resetPlanView();
   });
-  dim('#room-w', 'W', 3, 6); dim('#room-d', 'D', 2.75, 6.75); dim('#room-h', 'H', 2.2, 3.2);
-  $('#btn-paint-reset').addEventListener('click', () => { state.room.paint = { ...PHOTO_PAINT }; state.room.trim = DEFAULT_ROOM.trim; state.room.floor = 'oak'; applyRoomMaterials(); renderRoomPanel(); commit(); });
+  dim('#room-w', 'W', 3.2, 3.8); dim('#room-d', 'D', 3.55, 4.95); dim('#room-h', 'H', 2.2, 3.0);
+  $('#btn-paint-reset').addEventListener('click', () => { state.room.paint = { ...PHOTO_PAINT }; state.room.trim = DEFAULT_ROOM.trim; state.room.floor = 'oak'; state.room.floorBed = 'carpetOat'; applyRoomMaterials(); renderRoomPanel(); commit(); });
   const pf = (id, key, after) => $(id).addEventListener('change', (e) => { prefs[key] = e.target.checked; persist(); after(); });
-  pf('#pf-kitchen', 'kitchen', () => { applyVisibility(); updateMeasure(); });
   pf('#pf-swing', 'swing', applyVisibility);
   pf('#pf-measure', 'measure', updateMeasure);
   pf('#pf-snap', 'snap', () => {});
@@ -1698,7 +2075,7 @@ function bindTabs() {
 /* ---------------------------------------------------------- layouts */
 function photoLayout() {
   const g = G; const out = [];
-  const add = (kind, o) => { const it = newItem(kind, o); resolve(it, false); out.push(it); };
+  const add = (kind, o) => { const it = newItem(kind, o); resolve(it, false, ROOMS.lounge); out.push(it); };
   add('cornerSofa', { w: 2.75, d: 1.75, rot: 90, mirror: true, x: g.W - 0.875, z: g.D - 1.375 });
   add('coffeeTable', { rot: 90, x: g.W - 1.55, z: g.D - 2.0 });
   add('tvUnit', { rot: 270, x: 0.2, z: g.D - 1.6 });
@@ -1711,7 +2088,9 @@ function photoLayout() {
 }
 function loadLayout(obj) {
   const s = normalize(obj.state || obj);
-  state = s; selectedId = null; rebuildRoom(); syncItems(); renderRoomPanel(); select(null); commit(); resetView();
+  state = s; selectedId = null; rebuildRoom();
+  for (const it of state.items) resolve(it, false, ROOMS[it.room] || roomFor(it));
+  syncItems(); renderRoomPanel(); select(null); commit(); resetView();
 }
 
 /* ---------------------------------------------------------- files */
@@ -1739,10 +2118,9 @@ async function saveFile(filename, data) {
 }
 async function exportGLB(withFurniture) {
   const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
-  const root = new THREE.Group(); root.name = withFurniture ? 'Lounge with furniture' : 'Empty lounge';
+  const root = new THREE.Group(); root.name = withFurniture ? 'Flat with furniture' : 'Empty flat';
   const r = buildRoom(G, true);
-  if (!prefs.kitchen) r.kitchen.removeFromParent();
-  r.ceiling.visible = true; r.kceiling.visible = true;
+  r.ceilings.visible = true;
   root.add(r.group);
   if (withFurniture && state.items.length) {
     const f = new THREE.Group(); f.name = 'Furniture';
@@ -1758,7 +2136,7 @@ async function downloadModel(withFurniture, btn) {
   btn.disabled = true; const label = btn.firstChild.textContent; btn.firstChild.textContent = 'Building the model…';
   try {
     const buf = await exportGLB(withFurniture);
-    const base = withFurniture ? 'lounge-furnished' : 'lounge-empty';
+    const base = withFurniture ? 'flat-furnished' : 'flat-empty';
     const d = await getDownloads();
     if (d === 'anchor') await saveFile(`${base}.glb`, new Blob([buf], { type: 'model/gltf-binary' }));
     else { const { zipSync } = await import('fflate'); await saveFile(`${base}-3d.zip`, zipSync({ [`${base}.glb`]: new Uint8Array(buf) }, { level: 6 })); }
@@ -1772,10 +2150,10 @@ async function savePicture() {
   selGroup.visible = prevSel; measureGroup.visible = prevM;
   const bin = atob(url.split(',')[1]), bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  await saveFile('lounge-view.png', new Blob([bytes], { type: 'image/png' }));
+  await saveFile('flat-view.png', new Blob([bytes], { type: 'image/png' }));
 }
 function bindSave() {
-  $('#btn-save-json').addEventListener('click', () => saveFile('lounge-layout.json', JSON.stringify({ app: 'lounge-3d-planner', version: 1, state }, null, 2)));
+  $('#btn-save-json').addEventListener('click', () => saveFile('flat-layout.json', JSON.stringify({ app: 'flat-3d-planner', version: 2, state }, null, 2)));
   $('#btn-open-json').addEventListener('click', () => $('#file-json').click());
   $('#file-json').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
@@ -1796,7 +2174,8 @@ function bindSave() {
 /* ----------------------------------------------------------------- boot */
 function bindToolbar() {
   document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { setMode(b.dataset.view); }));
-  document.querySelectorAll('[data-eye]').forEach((b) => b.addEventListener('click', () => presetEye(b.dataset.eye)));
+  $('#focus').addEventListener('change', (e) => setFocus(e.target.value));
+  $('#eye-where').addEventListener('change', (e) => presetEye(e.target.value));
   $('#btn-reset-view').addEventListener('click', resetView);
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-redo').addEventListener('click', redo);
@@ -1804,23 +2183,29 @@ function bindToolbar() {
     const ids = [...clashes.flagged]; if (!ids.length) return;
     const i = ids.indexOf(selectedId); select(ids[(i + 1) % ids.length]);
   });
-  $('#btn-photo').addEventListener('click', () => { state.items = photoLayout(); selectedId = null; syncItems(); commit(); toast('This is roughly how the room is furnished in the listing photos.'); });
+  $('#btn-photo').addEventListener('click', () => {
+    state.items = state.items.filter((i) => i.room !== 'lounge').concat(photoLayout()); selectedId = null; syncItems(); commit();
+    toast('This is roughly how the lounge is furnished in the listing photos. Undo takes it back.');
+  });
   $('#btn-clear').addEventListener('click', () => { if (!state.items.length) return; state.items = []; select(null); syncItems(); commit(); toast('Furniture removed. Undo brings it back.'); });
 }
 new ResizeObserver(() => {
   const r = stage.getBoundingClientRect(); size.w = Math.max(1, r.width); size.h = Math.max(1, r.height);
   renderer.setSize(size.w, size.h, false);
   persp.aspect = eyeCam.aspect = size.w / size.h; persp.updateProjectionMatrix(); eyeCam.updateProjectionMatrix(); frustumPlan();
+  if (!cameraTouched && roomObj) { resetOrbitView(false); resetPlanView(); }
 }).observe(stage);
 
 loadStored();
-G = geo(state.room);
+G = geo(state.room); ROOMS = roomsDef(G); DOORS = doorInfos(G);
+for (const it of state.items) resolve(it, false, roomAt(it.x, it.z) || ROOMS[it.room] || ROOMS.lounge);
 readTheme();
 rebuildRoom();
 renderCatalog(); bindInspector(); bindRoomPanel(); bindTabs(); bindSave(); bindToolbar();
 renderRoomPanel();
 syncItems();
-setMode('orbit'); resetOrbitView(); resetPlanView();
+$('#focus').value = prefs.focus;
+setMode('orbit'); setFocus(prefs.focus); resetOrbitView(false); resetPlanView();
 hist.stack = [JSON.stringify(state)]; hist.i = 0; updateUndo();
 let last = performance.now();
 function frame(now) {
@@ -1834,7 +2219,7 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.__lounge = { exportGLB, setMode, photoLayout: () => { state.items = photoLayout(); syncItems(); }, select, get state() { return state; }, presetEye, addItem };
+window.__lounge = { exportGLB, setMode, setFocus, photoLayout: () => { state.items = photoLayout(); syncItems(); }, select, get state() { return state; }, presetEye, addItem, walkable };
 </script>
 </body>
 </html>
