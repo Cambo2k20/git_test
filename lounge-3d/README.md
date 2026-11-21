@@ -1,6 +1,6 @@
 # Lounge 3D Planner
 
-A 3D model of the empty lounge, built from the floorplan and listing photos, with a furniture planner on top.
+A 3D model of the empty lounge, built from the listing's measurements, floorplan and photos, with a furniture planner on top.
 
 ![The empty lounge in 3D](preview.png)
 
@@ -11,18 +11,20 @@ A 3D model of the empty lounge, built from the floorplan and listing photos, wit
 
 ## What's modelled
 
-| Part | Size or position (estimated) |
-| --- | --- |
-| Lounge | 367 cm wide × 412 cm long, 240 cm ceiling |
-| Door alcove | 120 cm wide, 25 cm deeper than the rest of the door wall |
-| Hall door | 80 cm opening, hinged on the radiator side, opens into the lounge |
-| Window | about 143 cm wide, beside the teal feature wall |
-| Half-height ledge | 18 cm deep, 103 cm high with a black top, under the window |
-| Kitchen opening | about 123 cm wide, 200 cm high |
-| Radiator | 85 cm column radiator on the radiator wall, by the door |
-| Finishes | oak strip floor, pine door and skirting, coving, recessed downlights |
+| Part | Size or position | Source |
+| --- | --- | --- |
+| Lounge | 345 cm wide × 434 cm from the window wall to the hall door | Listing |
+| Kitchen | 343 cm × 229 cm | Listing |
+| Ceiling | 240 cm | Estimate |
+| Door recess | 110 cm wide, 25 cm deeper than the shower-room wall (so 409 cm along the feature wall) | Estimate, fits the 229 cm shower room |
+| Hall door | 80 cm opening, hinged on the radiator side, opens into the lounge | Plan and photos |
+| Window | about 143 cm wide, beside the teal feature wall | Plan and photos |
+| Half-height ledge | 18 cm deep, 103 cm high with a black top, under the window | Photos |
+| Kitchen opening | about 123 cm wide, 200 cm high | Plan and photos |
+| Radiator | 85 cm column radiator on the radiator wall, by the door | Photos |
+| Finishes | oak strip floor, pine door and skirting, coving, recessed downlights | Photos |
 
-The floorplan has no dimensions, so the sizes are scaled from the door and shower tray widths on the plan. Allow about ±10 cm. If you have the real measurements, type them into the Room tab and the room resizes around your furniture.
+The room's overall size comes from the listing. Positions of the door, window, opening and radiator are scaled from the floorplan and photos, so allow about ±10 cm on those. Any size can be changed in the Room tab and the room resizes around your furniture.
 
 ## Using the planner
 
